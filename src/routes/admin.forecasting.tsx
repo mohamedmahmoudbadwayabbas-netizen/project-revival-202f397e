@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, CalendarDays, Package, RefreshCw, TrendingUp } from "lucide-react";
+import { Activity, CalendarDays, Package, RefreshCw, Sparkles, TrendingUp } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { generateForecastInsights } from "@/lib/forecast/insights.functions";
+import { isInsightFresh, pickAtRiskItems } from "@/lib/forecast/insights";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { fetchOrdersWithItems, type OrderView } from "@/services/orderDataService";
@@ -109,6 +112,8 @@ function ForecastingPage() {
             tone="amber"
           />
         </section>
+
+        <AiInsights rows={activeDemand} disabled={loading} />
 
         <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
@@ -244,5 +249,65 @@ function SummaryCard({
         </p>
       </div>
     </div>
+  );
+}
+
+const INSIGHT_KEY = "forecast-ai-insight";
+
+function AiInsights({ rows, disabled }: { rows: ForecastRow[]; disabled: boolean }) {
+  const run = useServerFn(generateForecastInsights);
+  const [text, setText] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(INSIGHT_KEY) || "null");
+      if (saved && isInsightFresh(saved.savedAt)) {
+        setText(saved.text);
+        setSavedAt(saved.savedAt);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const analyze = async () => {
+    setBusy(true);
+    try {
+      const items = pickAtRiskItems(
+        rows.map((r) => ({ name: r.name, stock: r.stock, daily: r.dailyAverage, coverageDays: r.coverageDays })),
+      );
+      const res = await run({ data: { items } });
+      const now = Date.now();
+      setText(res.text);
+      setSavedAt(now);
+      localStorage.setItem(INSIGHT_KEY, JSON.stringify({ text: res.text, savedAt: now }));
+    } catch (error) {
+      toast.error(`تعذر التحليل: ${error instanceof Error ? error.message : "خطأ غير معروف"}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="flex items-center gap-2 text-lg font-black text-slate-900">
+            <Sparkles className="size-5 text-emerald-600" /> توصيات الذكاء الاصطناعي
+          </h2>
+          <p className="mt-1 text-xs text-slate-500">
+            {savedAt
+              ? `آخر تحليل: ${new Date(savedAt).toLocaleString("ar-EG")} — يُحفظ 24 ساعة`
+              : "يعمل فقط عند الضغط، على أكثر 7 أصناف معرضة للنقص."}
+          </p>
+        </div>
+        <Button className="min-h-11 gap-2" disabled={disabled || busy || rows.length === 0} onClick={() => void analyze()}>
+          <Sparkles className="size-4" /> {busy ? "جارٍ التحليل…" : text ? "تحليل من جديد" : "تحليل التوقعات بالذكاء الاصطناعي"}
+        </Button>
+      </div>
+      {text && <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-slate-700">{text}</p>}
+    </section>
   );
 }
