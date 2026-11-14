@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { INSIGHT_CACHE_MS, isInsightFresh, pickAtRiskItems } from "./insights";
+import { INSIGHT_CACHE_MS, isInsightFresh, pickAtRiskItems, type ForecastItem } from "./insights";
 
 describe("forecast insights", () => {
   it("sends at most 7 items, lowest coverage first, skipping items with no sales", () => {
-    const items = Array.from({ length: 10 }, (_, i) => ({ name: `p${i}`, stock: 10, daily: 1, coverageDays: 10 - i }));
+    const items: ForecastItem[] = Array.from({ length: 10 }, (_, i) => ({ name: `p${i}`, stock: 10, daily: 1, coverageDays: 10 - i }));
     items.push({ name: "dead", stock: 5, daily: 0, coverageDays: null });
     const picked = pickAtRiskItems(items);
     expect(picked).toHaveLength(7);
