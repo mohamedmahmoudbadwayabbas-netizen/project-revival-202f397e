@@ -67,7 +67,7 @@ function OverviewPage() {
       )
       .eq("is_active", true);
     if (!error) {
-      setProducts((data ?? []) as AdminProductRow[]);
+      setProducts((data ?? []) as unknown as AdminProductRow[]);
     }
   }, []);
 
