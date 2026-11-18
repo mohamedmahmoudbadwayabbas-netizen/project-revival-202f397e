@@ -76,6 +76,18 @@ const THINKING_STEPS = [
 
 const STARTER_PROMPTS = [
   {
+    title: "طلبات تحتاج متابعة",
+    desc: "الحالات المفتوحة والطلبات الأحدث",
+    prompt: "اعرض الطلبات الجديدة وقيد التجهيز، واذكر وقت إنشاء كل طلب دون وصفه بالمتأخر ما لم توجد مهلة توصيل محفوظة.",
+    icon: ClipboardList,
+  },
+  {
+    title: "نواقص المخزون",
+    desc: "مقارنة الرصيد بحد الأمان المسجل",
+    prompt: "افحص المخزون واعرض الأصناف النافدة أو التي وصلت إلى حد الأمان مع الكمية والوحدة.",
+    icon: Package,
+  },
+  {
     title: "ابحث عن منتج",
     desc: "السعر والمخزون والحالة الحالية",
     prompt: "ابحث عن منتج في الكتالوج الحالي",
@@ -94,9 +106,9 @@ const STARTER_PROMPTS = [
     icon: ClipboardList,
   },
   {
-    title: "راجع المبيعات والمخزون",
-    desc: "ملخص تنفيذي مبني على بيانات المتجر",
-    prompt: "حلل المبيعات والمخزون وحدد النواقص والمنتجات الراكدة",
+    title: "راجع مبيعات الأسبوع",
+    desc: "أرقام فعلية مع توضيح الفترة والعينة",
+    prompt: "لخص مبيعات آخر 7 أيام، واستبعد الطلبات الملغاة، واذكر عدد الطلبات التي فُحصت إن كانت النتيجة محدودة بعينة.",
     icon: Search,
   },
   {
@@ -112,6 +124,35 @@ const STARTER_PROMPTS = [
     icon: TrendingUp,
   },
 ];
+
+type InventoryStockRow = {
+  stock: number | null;
+  stock_quantity: number | null;
+  low_stock_threshold: number | null;
+};
+
+async function loadInventoryStockScan() {
+  const pageSize = 1000;
+  const maxProducts = 5000;
+  const rows: InventoryStockRow[] = [];
+
+  for (let from = 0; from < maxProducts; from += pageSize) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("id,stock,stock_quantity,low_stock_threshold")
+      .eq("is_active", true)
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) return { rows, error: error.message, truncated: false };
+
+    const page = (data ?? []) as unknown as InventoryStockRow[];
+    rows.push(...page);
+    if (page.length < pageSize) return { rows, error: null, truncated: false };
+  }
+
+  return { rows, error: null, truncated: true };
+}
 
 type ExecutionMode = "suggest" | "approval";
 type WorkspaceMode = "review" | "live-preview" | "store-engine" | "advisory";
@@ -238,9 +279,10 @@ function AdminCoPilotPage() {
     state: "checking" | "connected" | "offline";
     products: number | null;
     lowStock: number | null;
+    stockTruncated: boolean;
     orders: number | null;
     missingImages: number | null;
-  }>({ state: "checking", products: null, lowStock: null, orders: null, missingImages: null });
+  }>({ state: "checking", products: null, lowStock: null, stockTruncated: false, orders: null, missingImages: null });
   const [healthRevision, setHealthRevision] = useState(0);
 
   // Prompt & File Attachment
@@ -305,11 +347,10 @@ function AdminCoPilotPage() {
   useEffect(() => {
     let cancelled = false;
     const loadStoreHealth = async () => {
-      const [products, lowStock, outOfStock, orders, missingImages, recentOrders] =
+      const [products, stockScan, orders, missingImages, recentOrders] =
         await Promise.all([
           supabase.from("products").select("id", { count: "exact", head: true }),
-          supabase.from("products").select("id", { count: "exact", head: true }).lte("stock", 5),
-          supabase.from("products").select("id", { count: "exact", head: true }).lte("stock", 0),
+          loadInventoryStockScan(),
           supabase.from("orders").select("id", { count: "exact", head: true }),
           supabase.from("products").select("id", { count: "exact", head: true }).is("image_url", null),
           supabase
@@ -321,11 +362,14 @@ function AdminCoPilotPage() {
       if (cancelled) return;
       setStoreDataStatus({
         state:
-          products.error || orders.error || lowStock.error || missingImages.error
+          products.error || orders.error || stockScan.error || missingImages.error
             ? "offline"
             : "connected",
         products: products.error ? null : (products.count ?? 0),
-        lowStock: lowStock.error ? null : (lowStock.count ?? 0),
+        lowStock: stockScan.error
+          ? null
+          : stockScan.rows.filter((product) => Number(product.stock_quantity ?? product.stock ?? 0) <= Number(product.low_stock_threshold ?? 5)).length,
+        stockTruncated: stockScan.truncated,
         orders: orders.error ? null : (orders.count ?? 0),
         missingImages: missingImages.error ? null : (missingImages.count ?? 0),
       });
@@ -337,8 +381,11 @@ function AdminCoPilotPage() {
           totalRevenue: revenue,
           totalOrders: validOrders.length,
           averageOrderValue: validOrders.length ? revenue / validOrders.length : 0,
-          outOfStockCount: outOfStock.count ?? 0,
-          lowStockCount: lowStock.count ?? 0,
+          outOfStockCount: stockScan.rows.filter((product) => Number(product.stock_quantity ?? product.stock ?? 0) <= 0).length,
+          lowStockCount: stockScan.rows.filter((product) => {
+            const quantity = Number(product.stock_quantity ?? product.stock ?? 0);
+            return quantity > 0 && quantity <= Number(product.low_stock_threshold ?? 5);
+          }).length,
           topSellingCategory: "بيانات المتجر الحالية",
         });
       }
@@ -1004,6 +1051,29 @@ function AdminCoPilotPage() {
           )}
         </AnimatePresence>
       </header>
+
+      <div className="grid flex-none grid-cols-2 gap-2 border-b border-slate-100 bg-slate-50/70 px-3 py-2 sm:grid-cols-4 sm:px-5" aria-label="مؤشرات المتجر">
+        <Link to="/admin/orders" className="rounded-2xl border border-slate-100 bg-white px-3 py-2 shadow-sm transition-all duration-200 hover:shadow-md">
+          <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">الطلبات</span>
+          <strong className="mt-1 block text-xl font-black text-slate-900">{storeDataStatus.orders ?? "—"}</strong>
+          <span className="text-[11px] text-slate-500">إجمالي الطلبات المسجلة</span>
+        </Link>
+        <Link to="/admin/products" className="rounded-2xl border border-slate-100 bg-white px-3 py-2 shadow-sm transition-all duration-200 hover:shadow-md">
+          <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">الكتالوج</span>
+          <strong className="mt-1 block text-xl font-black text-slate-900">{storeDataStatus.products ?? "—"}</strong>
+          <span className="text-[11px] text-slate-500">المنتجات المسجلة</span>
+        </Link>
+        <Link to="/admin/products" className="rounded-2xl border border-slate-100 bg-white px-3 py-2 shadow-sm transition-all duration-200 hover:shadow-md">
+          <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">حد الأمان</span>
+          <strong className="mt-1 block text-xl font-black text-slate-900">{storeDataStatus.lowStock ?? "—"}</strong>
+          <span className="text-[11px] text-slate-500">{storeDataStatus.stockTruncated ? "في عينة 5000 منتج" : "منتج عند حد المخزون أو دونه"}</span>
+        </Link>
+        <button type="button" onClick={() => openWorkspaceMode("review")} className="rounded-2xl border border-slate-100 bg-white px-3 py-2 text-right shadow-sm transition-all duration-200 hover:shadow-md">
+          <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${pendingAction ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-600"}`}>مراجعتك</span>
+          <strong className="mt-1 block text-xl font-black text-slate-900">{pendingAction ? "1" : "0"}</strong>
+          <span className="text-[11px] text-slate-500">اقتراح ينتظر اعتمادك</span>
+        </button>
+      </div>
 
       {/* ─── 2. MAIN WORKSPACE ─── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
