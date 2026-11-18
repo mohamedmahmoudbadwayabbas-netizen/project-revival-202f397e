@@ -57,6 +57,7 @@ const READ_TOOLS = new Set<AiToolName>([
   "searchProducts",
   "getCategories",
   "exportReportsAndAnalytics",
+  "getInventoryAlerts",
   "getDirectoryTree",
   "getFileContent",
   "searchCodebase",
