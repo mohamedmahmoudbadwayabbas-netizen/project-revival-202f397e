@@ -29,6 +29,7 @@ import { LiveBranch, fetchLiveBranches, UNIFIED_ALL_BRANCHES_ID } from "@/lib/br
 import {
   buildLowStockAlertItems,
   buildSalesChartData,
+  canonicalOrderStatus,
   computeBestSellers,
   computeDashboardKpis,
   filterOrdersByBranch,
@@ -51,6 +52,7 @@ export const Route = createFileRoute("/admin/")({
 function OverviewPage() {
   const [orders, setOrders] = useState<AdminOrderRow[]>([]);
   const [products, setProducts] = useState<AdminProductRow[]>([]);
+  const [productsTruncated, setProductsTruncated] = useState(false);
   const [branches, setBranches] = useState<LiveBranch[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState<string>(UNIFIED_ALL_BRANCHES_ID);
   const [alertsModalOpen, setAlertsModalOpen] = useState(false);
@@ -58,28 +60,47 @@ function OverviewPage() {
   const [chartFilter, setChartFilter] = useState<ChartFilter>("7days");
   const [chartMetric, setChartMetric] = useState<ChartMetric>("sales");
   const [previewOrder, setPreviewOrder] = useState<AdminOrderRow | null>(null);
+  const [pendingApprovals, setPendingApprovals] = useState<number | null>(null);
 
   const loadProducts = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("products")
-      .select(
-        "id,name,name_ar,stock,stock_quantity,low_stock_threshold,unit_label,unit,is_active,categories(name,name_ar)",
-      )
-      .eq("is_active", true);
-    if (!error) {
-      setProducts((data ?? []) as unknown as AdminProductRow[]);
+    const pageSize = 1000;
+    const maxProducts = 5000;
+    const loaded: AdminProductRow[] = [];
+
+    for (let from = 0; from < maxProducts; from += pageSize) {
+      const { data, error } = await supabase
+        .from("products")
+        .select(
+          "id,name,name_ar,stock,stock_quantity,low_stock_threshold,unit_label,unit,is_active,categories(name,name_ar)",
+        )
+        .eq("is_active", true)
+        .order("id", { ascending: true })
+        .range(from, from + pageSize - 1);
+      if (error) return;
+
+      const page = (data ?? []) as unknown as AdminProductRow[];
+      loaded.push(...page);
+      if (page.length < pageSize) {
+        setProducts(loaded);
+        setProductsTruncated(false);
+        return;
+      }
     }
+    setProducts(loaded);
+    setProductsTruncated(true);
   }, []);
 
   const loadData = useCallback(async () => {
     try {
-      const [ords, liveBranches] = await Promise.all([
+      const [ords, liveBranches, , approvals] = await Promise.all([
         fetchOrdersWithItems({ limit: 500 }),
         fetchLiveBranches(),
         loadProducts(),
+        supabase.from("ai_proposals").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
       setOrders((ords ?? []) as unknown as AdminOrderRow[]);
       setBranches(liveBranches);
+      setPendingApprovals(approvals.error ? null : (approvals.count ?? 0));
     } catch (err) {
       console.error("Error loading admin overview data:", err);
     } finally {
@@ -113,6 +134,9 @@ function OverviewPage() {
         void loadProducts();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "delivery_zones" }, () => {
+        void loadData();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "ai_proposals" }, () => {
         void loadData();
       })
       .subscribe();
@@ -150,6 +174,10 @@ function OverviewPage() {
   const bestSellers = useMemo(() => computeBestSellers(filteredOrders, 5), [filteredOrders]);
 
   const liveOrdersFeed = useMemo(() => filteredOrders.slice(0, 6), [filteredOrders]);
+  const ordersNeedingReview = useMemo(
+    () => filteredOrders.filter((order) => ["pending", "confirmed", "ready_for_delivery"].includes(canonicalOrderStatus(order.status))),
+    [filteredOrders],
+  );
 
   const executiveKpis = useMemo(
     () => ({
@@ -159,7 +187,6 @@ function OverviewPage() {
       lowStockCount: kpis.lowStockCount,
       outOfStockCount: kpis.outOfStockCount,
       topSellingCategory: "كافة الأقسام",
-      abandonedCartsCount: 0,
     }),
     [
       kpis.salesMonth,
@@ -394,6 +421,46 @@ function OverviewPage() {
       {/* 3. Smart Insights */}
       <SmartInsights />
 
+      {/* Live actions inspired by the supplied executive dashboard concept. */}
+      <section className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-5" dir="rtl">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-sm font-black text-slate-900">محتاج تدخلك دلوقتي</h2>
+            <p className="mt-1 text-xs text-slate-500">تنبيهات مرتبطة ببيانات المتجر الحالية</p>
+          </div>
+          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">مباشر</span>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <Link to="/admin/orders" className="group rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:border-emerald-200 hover:bg-emerald-50/40 hover:shadow-sm">
+            <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">طلبات</span>
+            <strong className="mt-2 block text-2xl font-black text-slate-900">{ordersNeedingReview.length}</strong>
+            <span className="mt-1 block text-xs text-slate-600">من أحدث 500 طلب محمّل</span>
+            <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-700">مراجعة الطلبات <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" /></span>
+          </Link>
+          <Link to="/admin/products" className="group rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:border-amber-200 hover:bg-amber-50/40 hover:shadow-sm">
+            <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">المخزون</span>
+            <strong className="mt-2 block text-2xl font-black text-slate-900">{lowStockItems.length}</strong>
+            <span className="mt-1 block truncate text-xs text-slate-600">
+              {lowStockItems[0]?.name || (productsTruncated ? "لا توجد تنبيهات في العينة المحمّلة" : "كل الأصناف فوق حد الأمان")}
+            </span>
+            {productsTruncated && <span className="mt-1 block text-[10px] text-amber-700">أول 5000 منتج نشط فقط</span>}
+            <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-700">فحص المخزون <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" /></span>
+          </Link>
+          <Link to="/admin/copilot" className="group rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4 transition-all duration-200 hover:border-emerald-200 hover:bg-emerald-50 hover:shadow-sm">
+            <span className="inline-flex rounded-full bg-white px-2.5 py-0.5 text-xs font-semibold text-emerald-700">نبراس</span>
+            <strong className="mt-2 block text-base font-black text-slate-900">قرارات تشغيلية بمراجعتك</strong>
+            <span className="mt-1 block text-xs text-slate-600">حلّل الطلبات أو المخزون، ثم راجع الأثر قبل أي تعديل.</span>
+            <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-700">افتح نبراس <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" /></span>
+          </Link>
+          <Link to="/admin/governance" className="group rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:border-emerald-200 hover:bg-emerald-50/40 hover:shadow-sm">
+            <span className="inline-flex rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-semibold text-violet-700">الموافقات</span>
+            <strong className="mt-2 block text-2xl font-black text-slate-900">{pendingApprovals ?? "—"}</strong>
+            <span className="mt-1 block text-xs text-slate-600">اقتراح بانتظار المراجعة</span>
+            <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-700">مراجعة المقترحات <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" /></span>
+          </Link>
+        </div>
+      </section>
+
       {/* 4. Branch Cards Overview (shown when real branches exist) */}
       {branches.length > 0 && (
         <BranchCardsOverview
@@ -586,6 +653,9 @@ function OverviewPage() {
                         </div>
                         <div className="text-[11px] text-muted-foreground">
                           {getRelativeTimeAr(ord.created_at)}
+                        </div>
+                        <div className="max-w-40 truncate text-[10px] text-muted-foreground/80">
+                          {ord.address || "بدون عنوان توصيل"}
                         </div>
                       </div>
                       <div className="text-end shrink-0 space-y-1">
