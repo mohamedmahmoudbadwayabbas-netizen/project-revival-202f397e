@@ -51,6 +51,7 @@ import {
   updateRawJsonMetadata,
   manageUsersAndRoles,
   exportReportsAndAnalytics,
+  getInventoryAlerts,
   updateStoreAnnouncement,
   manageDeliveryZones,
 } from "./aiTools/operationalTools";
@@ -112,6 +113,7 @@ export {
   updateRawJsonMetadata,
   manageUsersAndRoles,
   exportReportsAndAnalytics,
+  getInventoryAlerts,
   updateStoreAnnouncement,
   manageDeliveryZones,
   getDirectoryTree,
