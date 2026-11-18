@@ -30,6 +30,7 @@ export type AiToolName =
   | "exportReportsAndAnalytics"
   | "updateStoreAnnouncement"
   | "manageDeliveryZones"
+  | "getInventoryAlerts"
   | "getDirectoryTree"
   | "getFileContent"
   | "searchCodebase"
