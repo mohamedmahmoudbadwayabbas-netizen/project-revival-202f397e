@@ -460,10 +460,10 @@ function OrdersPage() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="admin-orders space-y-6 p-4 sm:p-6 pb-24"
+      className="admin-lux admin-orders mx-auto max-w-[1440px] space-y-6 bg-slate-50/60 p-4 pb-24 sm:p-6"
       dir="rtl"
     >
-      <div className="admin-orders__page-title">
+      <div className="admin-orders__page-title rounded-3xl border border-slate-100 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md sm:p-6">
         <div>
           <h1>الطلبات</h1>
           <p>تابع كل طلبات متجرك من وصوله حتى تسليمه.</p>
@@ -473,17 +473,17 @@ function OrdersPage() {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="admin-orders__kpis admin-dashboard__kpis grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
-          ["الطلبات الجديدة", operationalKpis.pending, "text-blue-600"],
-          ["قيد التجهيز", operationalKpis.confirmed, "text-amber-600"],
-          ["جاهزة للتوصيل", operationalKpis.ready, "text-cyan-600"],
-          ["في الطريق", operationalKpis.shipped, "text-emerald-600"],
-          ["المكتملة اليوم", operationalKpis.deliveredToday, "text-violet-600"],
-        ].map(([label, value, color]) => (
-          <div key={label} className="rounded-2xl border bg-card p-4 shadow-sm">
-            <p className="text-[13px] font-bold text-muted-foreground">{label}</p>
-            <strong className={`mt-1 block text-2xl font-black ${color}`}>{value}</strong>
+          ["طلبات جديدة", operationalKpis.pending, "جديد", "bg-blue-50 text-blue-700"],
+          ["قيد التجهيز", operationalKpis.confirmed + operationalKpis.ready, "العمليات", "bg-amber-50 text-amber-700"],
+          ["في الطريق", operationalKpis.shipped, "التوصيل", "bg-emerald-50 text-emerald-700"],
+          ["المكتملة اليوم", operationalKpis.deliveredToday, "مكتمل", "bg-slate-100 text-slate-700"],
+        ].map(([label, value, badge, tone]) => (
+          <div key={label} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-5">
+            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${tone}`}>{badge}</span>
+            <p className="mt-2 text-xs font-bold text-slate-500">{label}</p>
+            <strong className="mt-0.5 block text-2xl font-black text-slate-900">{value}</strong>
           </div>
         ))}
       </div>
@@ -587,7 +587,7 @@ function OrdersPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="ابحث برقم الطلب أو اسم العميل أو رقم الموبايل"
-                  className="h-10 rounded-xl bg-background text-sm font-bold"
+                  className="h-10 rounded-full border-slate-200 bg-white text-sm font-bold"
                 />
               </div>
             </div>
