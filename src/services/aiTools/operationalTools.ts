@@ -277,9 +277,24 @@ export async function exportReportsAndAnalytics(
   let totalOrders = 0;
   let averageOrderValue = 0;
   let ordersList: any[] = [];
+  let sourceOrders: any[] = [];
   let topProducts: Array<{ name: string; salesCount: number; revenue: number }> = [];
   let queryFailed = false;
   let queryError = "";
+  const now = new Date();
+  const since = new Date(now);
+  if (timeframe === "today") {
+    since.setHours(0, 0, 0, 0);
+  } else if (timeframe === "last_7_days") {
+    since.setDate(since.getDate() - 7);
+  } else if (timeframe === "last_30_days") {
+    since.setDate(since.getDate() - 30);
+  } else if (timeframe === "this_month") {
+    since.setDate(1);
+    since.setHours(0, 0, 0, 0);
+  }
+  const hasTimeFilter = timeframe !== "all_time";
+  let sampleTruncated = false;
 
   if (!isSupabaseConfigured()) {
     return {
@@ -290,18 +305,21 @@ export async function exportReportsAndAnalytics(
   }
 
   try {
-    const { data: orders, error: ordersErr } = await supabase
+    let ordersQuery = supabase
       .from("orders")
       .select("id, total_amount, status, created_at, customer_name")
-      .order("created_at", { ascending: false })
-      .limit(100);
+      .order("created_at", { ascending: false });
+    if (hasTimeFilter) ordersQuery = ordersQuery.gte("created_at", since.toISOString());
+    const { data: orders, error: ordersErr } = await ordersQuery.limit(1000);
 
     if (ordersErr) throw ordersErr;
 
     if (orders && orders.length > 0) {
-      ordersList = orders;
-      totalOrders = orders.length;
-      totalRevenue = orders.reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0);
+      sourceOrders = orders;
+      sampleTruncated = orders.length === 1000;
+      ordersList = orders.filter((o) => o.status !== "cancelled");
+      totalOrders = ordersList.length;
+      totalRevenue = ordersList.reduce((acc, o) => acc + (Number(o.total_amount) || 0), 0);
       averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
     }
 
@@ -350,6 +368,23 @@ export async function exportReportsAndAnalytics(
     reportTitle: `تقرير مبيعات وأداء المتجر (${timeframe})`,
     generatedAt: new Date().toISOString(),
     timeframe,
+    sourceOrdersRead: sourceOrders.length,
+    sampleTruncated,
+    statusCounts: sourceOrders.reduce<Record<string, number>>((counts, order) => {
+      const status = String(order.status || "unknown");
+      counts[status] = (counts[status] ?? 0) + 1;
+      return counts;
+    }, {}),
+    ordersAwaitingAction: sourceOrders
+      .filter((order) => ["pending", "confirmed", "ready_for_delivery"].includes(order.status))
+      .slice(0, 10)
+      .map((order) => ({
+        id: order.id,
+        customerName: order.customer_name || "عميل",
+        status: order.status,
+        totalEGP: Number(order.total_amount || 0),
+        createdAt: order.created_at,
+      })),
     summary: {
       totalRevenue: +totalRevenue.toFixed(2),
       totalOrders,
@@ -375,12 +410,108 @@ export async function exportReportsAndAnalytics(
   return {
     tool: "exportReportsAndAnalytics",
     ok: true,
-    messageAr: `تم استخراج وتصدير تقرير أداء المتجر للفترة (${timeframe}) بإجمالي مبيعات ${totalRevenue.toLocaleString()} ج.م و${totalOrders} طلب.`,
+    messageAr: sampleTruncated
+      ? `حللت أحدث 1000 طلب كحد أقصى ضمن الفترة (${timeframe}): مبيعات العينة ${totalRevenue.toLocaleString()} ج.م من ${totalOrders} طلب غير ملغى. قد تكون هناك نتائج أقدم لم تدخل في العينة.`
+      : `تم استخراج تقرير أداء المتجر للفترة (${timeframe}) من ${sourceOrders.length} طلب مفحوص؛ المبيعات ${totalRevenue.toLocaleString()} ج.م من ${totalOrders} طلب غير ملغى.`,
     data: {
       timeframe,
       format,
       reportData,
       csvContent: format === "csv" ? csvContent : undefined,
+    },
+  };
+}
+
+/** Read-only inventory alert tool used by Nebras and the operations dashboard. */
+export async function getInventoryAlerts(args: {
+  severity?: "all" | "low" | "out";
+  threshold?: number;
+  limit?: number;
+}): Promise<ToolExecutionResult> {
+  const severity = args.severity ?? "all";
+  const override = Number.isFinite(args.threshold) && Number(args.threshold) >= 0
+    ? Number(args.threshold)
+    : null;
+  const limit = Math.min(100, Math.max(1, Math.floor(args.limit ?? 20)));
+  if (!isSupabaseConfigured()) {
+    return {
+      tool: "getInventoryAlerts",
+      ok: false,
+      messageAr: "الاتصال بقاعدة البيانات غير مهيأ؛ لم أتمكن من فحص المخزون.",
+    };
+  }
+
+  const pageSize = 1000;
+  const maxProducts = 5000;
+  const checked: Array<{
+    id: string;
+    name: string;
+    name_ar: string | null;
+    stock: number | null;
+    stock_quantity: number | null;
+    low_stock_threshold: number | null;
+    unit_label: string | null;
+    is_active: boolean | null;
+  }> = [];
+  let truncated = false;
+  for (let from = 0; from < maxProducts; from += pageSize) {
+    const { data, error } = await supabase
+      .from("products")
+      .select("id,name,name_ar,stock,stock_quantity,low_stock_threshold,unit_label,is_active")
+      .eq("is_active", true)
+      .order("id", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      return {
+        tool: "getInventoryAlerts",
+        ok: false,
+        messageAr: `تعذر قراءة المخزون من قاعدة البيانات: ${error.message}`,
+      };
+    }
+
+    const page = (data ?? []) as unknown as typeof checked;
+    checked.push(...page);
+    if (page.length < pageSize) break;
+    if (checked.length >= maxProducts) truncated = true;
+  }
+
+  const candidates = checked.flatMap((product) => {
+    const stock = Number(product.stock_quantity ?? product.stock ?? 0);
+    const productThreshold = override ?? Number(product.low_stock_threshold ?? 5);
+    if (stock > productThreshold) return [];
+    const status = stock <= 0 ? "out" : "low";
+    if (severity !== "all" && severity !== status) return [];
+    return [{
+      id: product.id,
+      name: product.name_ar || product.name,
+      stock,
+      threshold: productThreshold,
+      unit: product.unit_label || "وحدة",
+      severity: status,
+    }];
+  });
+  candidates.sort((a, b) => a.stock - b.stock);
+  const items = candidates.slice(0, limit);
+  const outOfStockCount = candidates.filter((item) => item.severity === "out").length;
+  const lowStockCount = candidates.filter((item) => item.severity === "low").length;
+
+  return {
+    tool: "getInventoryAlerts",
+    ok: true,
+    verified: true,
+    messageAr: truncated
+      ? `فحصت أول ${checked.length} منتج نشط: ${outOfStockCount} نافد و${lowStockCount} تحت حد الأمان. قد توجد منتجات أخرى خارج العينة. هذه قراءة فقط ولم يتغير أي رصيد.`
+      : `فحصت ${checked.length} منتج نشط: ${outOfStockCount} نافد و${lowStockCount} تحت حد الأمان. هذه قراءة فقط ولم يتغير أي رصيد.`,
+    data: {
+      checkedProducts: checked.length,
+      truncated,
+      severity,
+      lowStockCount,
+      outOfStockCount,
+      returnedItems: items.length,
+      limit,
+      items,
     },
   };
 }
