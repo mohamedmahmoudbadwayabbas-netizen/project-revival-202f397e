@@ -152,9 +152,9 @@ export function LiveStorefrontPreview({ s, className = "" }: LiveStorefrontPrevi
         <div
           className={`relative transition-all duration-300 w-full ${
             deviceMode === "mobile"
-              ? "max-w-[360px] rounded-[42px] border-[10px] border-slate-900 dark:border-slate-800 bg-slate-950 p-2 shadow-2xl"
+              ? "max-w-[360px] rounded-[42px] border-[10px] border-slate-900 bg-slate-950 p-2 shadow-2xl"
               : deviceMode === "tablet"
-                ? "max-w-[580px] rounded-[36px] border-[10px] border-slate-900 dark:border-slate-800 bg-slate-950 p-2 shadow-2xl"
+                ? "max-w-[580px] rounded-[36px] border-[10px] border-slate-900 bg-slate-950 p-2 shadow-2xl"
                 : "max-w-full rounded-2xl border-2 border-border bg-card p-1 shadow-xl"
           }`}
         >
@@ -292,7 +292,7 @@ export function LiveStorefrontPreview({ s, className = "" }: LiveStorefrontPrevi
                     }}
                   >
                     <div className="relative z-10 space-y-1.5 max-w-[80%]">
-                      <span className="inline-flex items-center gap-1 text-[9px] bg-white/20 backdrop-blur-md px-2.5 py-0.5 rounded-full font-extrabold shadow-xs">
+                      <span className="inline-flex items-center gap-1 text-[9px] bg-card/20 backdrop-blur-md px-2.5 py-0.5 rounded-full font-extrabold shadow-xs">
                         <Sparkles className="h-3 w-3 text-amber-300" />
                         <span>طازج يومياً وبأعلى جودة ✨</span>
                       </span>
@@ -510,7 +510,7 @@ export function LiveStorefrontPreview({ s, className = "" }: LiveStorefrontPrevi
                             key={p.id}
                             className={`p-2 ${cardRadius} border ${
                               prodStyle === "glass"
-                                ? "bg-white/40 dark:bg-black/40 backdrop-blur-md"
+                                ? "bg-card/40 dark:bg-black/40 backdrop-blur-md"
                                 : prodStyle === "bordered"
                                   ? "bg-card border-2 shadow-sm"
                                   : prodStyle === "compact"

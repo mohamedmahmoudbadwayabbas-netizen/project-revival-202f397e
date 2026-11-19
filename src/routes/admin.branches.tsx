@@ -113,15 +113,15 @@ function BranchesPage() {
   }, [products, search]);
 
   return (
-    <main className="admin-lux min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <main className="admin-lux min-h-screen bg-muted p-4 sm:p-6 lg:p-8" dir="rtl">
       <div className="mx-auto max-w-7xl space-y-6">
         <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm font-bold text-emerald-600">التوسع المؤسسي</p>
-            <h1 className="mt-1 text-2xl font-black text-slate-900 sm:text-3xl">
+            <h1 className="mt-1 text-2xl font-black text-foreground sm:text-3xl">
               الفروع والمخزون الجغرافي
             </h1>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-muted-foreground">
               معاينة الفروع الحالية والكتالوج العام قبل تفعيل مخزون مستقل لكل فرع.
             </p>
           </div>
@@ -137,8 +137,8 @@ function BranchesPage() {
         </header>
 
         {formOpen && (
-          <section className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm sm:p-6">
-            <h2 className="mb-4 font-black text-slate-900">
+          <section className="rounded-2xl border border-emerald-200 bg-card p-4 shadow-sm sm:p-6">
+            <h2 className="mb-4 font-black text-foreground">
               {editing ? "تعديل الفرع" : "فرع جديد"}
             </h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -179,13 +179,13 @@ function BranchesPage() {
         )}
 
         <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-          <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+          <section className="rounded-2xl border border-border bg-card p-3 shadow-sm">
             <div className="mb-3 flex items-center gap-2 px-2">
               <Building2 className="size-4 text-emerald-600" />
-              <h2 className="font-black text-slate-900">الفروع</h2>
+              <h2 className="font-black text-foreground">الفروع</h2>
             </div>
             {branches.length === 0 && !loading ? (
-              <p className="p-4 text-sm text-slate-500">لا توجد فروع معرفة بعد.</p>
+              <p className="p-4 text-sm text-muted-foreground">لا توجد فروع معرفة بعد.</p>
             ) : (
               <div className="space-y-2">
                 {branches.map((branch) => (
@@ -196,11 +196,11 @@ function BranchesPage() {
                     className={`w-full rounded-xl p-3 text-start ${
                       selectedId === branch.id
                         ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200"
-                        : "hover:bg-slate-50"
+                        : "hover:bg-muted"
                     }`}
                   >
                     <strong className="block truncate text-sm">{branch.name}</strong>
-                    <span className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                    <span className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                       <MapPin className="size-3" /> {branch.city || "الموقع غير محدد"}
                     </span>
                     <span
@@ -227,16 +227,16 @@ function BranchesPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-xs font-bold text-emerald-600">الفرع المحدد</p>
-                <h2 className="mt-1 text-xl font-black text-slate-900">
+                <h2 className="mt-1 text-xl font-black text-foreground">
                   {currentBranch?.name || "اختر فرعًا"}
                 </h2>
               </div>
               <div className="relative w-full sm:max-w-xs">
-                <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+                <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
@@ -253,12 +253,12 @@ function BranchesPage() {
               {filteredProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="flex items-center justify-between rounded-xl border border-slate-200 p-3"
+                  className="flex items-center justify-between rounded-xl border border-border p-3"
                 >
-                  <span className="truncate text-sm font-bold text-slate-800">
+                  <span className="truncate text-sm font-bold text-foreground">
                     {product.name_ar || product.name || "منتج"}
                   </span>
-                  <span className="ms-3 shrink-0 text-xs font-bold text-slate-500">
+                  <span className="ms-3 shrink-0 text-xs font-bold text-muted-foreground">
                     المخزون العام: {Number(product.stock ?? 0)}
                   </span>
                 </div>
@@ -266,7 +266,7 @@ function BranchesPage() {
             </div>
           </section>
         </div>
-        <p className="text-xs leading-relaxed text-slate-500">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           تفعيل Geo Inventory يتطلب جدول branch_inventory مع branch_id وproduct_id وstock
           وsafety_stock وreorder_point وaisle وbin، إضافة إلى سياسات RLS وربط اختيار العميل بأقرب
           فرع.

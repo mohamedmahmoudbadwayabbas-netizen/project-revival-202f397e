@@ -15,11 +15,11 @@ export function StoreEngineBuilder({
   isDeploying,
 }: StoreEngineBuilderProps) {
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm">
-      <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-4">
+    <div className="bg-card rounded-xl border border-border p-6 shadow-sm">
+      <h2 className="text-lg font-bold text-foreground mb-4">
         محرك الواجهة والألوان
       </h2>
-      <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+      <p className="mb-4 text-sm text-muted-foreground">
         تُحفظ هذه التغييرات كمعاينة محلية في هذا المتصفح. النشر إلى واجهة المتجر غير موصول بعد.
       </p>
       <div className="space-y-4">
@@ -35,7 +35,7 @@ export function StoreEngineBuilder({
                     theme: { ...layoutConfig.theme, palette: color as any },
                   })
                 }
-                className={`px-3 py-1.5 rounded border ${layoutConfig.theme.palette === color ? "border-emerald-500 bg-emerald-50" : "border-zinc-200"}`}
+                className={`px-3 py-1.5 rounded border ${layoutConfig.theme.palette === color ? "border-emerald-500 bg-emerald-50" : "border-border"}`}
               >
                 {color}
               </button>

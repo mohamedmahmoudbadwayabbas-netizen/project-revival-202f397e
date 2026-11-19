@@ -72,15 +72,15 @@ function ForecastingPage() {
   ).length;
 
   return (
-    <main className="admin-lux min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <main className="admin-lux min-h-screen bg-muted/60 p-4 sm:p-6 lg:p-8" dir="rtl">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="flex flex-col justify-between gap-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md sm:flex-row sm:items-end sm:p-6">
+        <header className="flex flex-col justify-between gap-4 rounded-3xl border border-border bg-card p-5 shadow-sm transition-all duration-200 hover:shadow-md sm:flex-row sm:items-end sm:p-6">
           <div>
             <p className="text-sm font-bold text-emerald-600">الذكاء التشغيلي</p>
-            <h1 className="mt-1 text-2xl font-black text-slate-900 sm:text-3xl">
+            <h1 className="mt-1 text-2xl font-black text-foreground sm:text-3xl">
               التنبؤ بالطلب والمخزون
             </h1>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-muted-foreground">
               تقدير مبني على مبيعات آخر 30 يومًا لمساعدة فريق التشغيل في التخطيط.
             </p>
           </div>
@@ -115,11 +115,11 @@ function ForecastingPage() {
 
         <AiInsights rows={activeDemand} disabled={loading} />
 
-        <section className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-6">
+        <section className="rounded-3xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-6">
           <div className="mb-5 flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-black text-slate-900">توقعات الأصناف</h2>
-              <p className="mt-1 text-xs text-slate-500">
+              <h2 className="text-lg font-black text-foreground">توقعات الأصناف</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
                 المتوسط اليومي = الكمية المباعة ÷ 30 يومًا.
               </p>
             </div>
@@ -127,17 +127,17 @@ function ForecastingPage() {
           </div>
 
           {loading ? (
-            <div className="py-12 text-center text-sm text-slate-500">جارٍ تحليل الطلبات…</div>
+            <div className="py-12 text-center text-sm text-muted-foreground">جارٍ تحليل الطلبات…</div>
           ) : activeDemand.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+            <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
               لا توجد مبيعات كافية لإنشاء تقدير بعد.
             </div>
           ) : (
             <div className="grid gap-3 md:grid-cols-2">
               {activeDemand.map((row) => (
-                <article key={row.id} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md">
+                <article key={row.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md">
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="font-bold text-slate-900">{row.name}</h3>
+                    <h3 className="font-bold text-foreground">{row.name}</h3>
                     <span
                       className={`shrink-0 rounded-full px-2 py-1 text-xs font-bold ${
                         row.coverageDays !== null && row.coverageDays < 7
@@ -155,9 +155,9 @@ function ForecastingPage() {
                     <Metric label="يوميًا" value={`${formatNumber(row.dailyAverage)}`} />
                     <Metric label="7 أيام" value={`${formatNumber(row.projectedWeek)}`} />
                   </div>
-                  <p className="mt-3 text-xs text-slate-500">
+                  <p className="mt-3 text-xs text-muted-foreground">
                     المخزون الحالي:{" "}
-                    <strong className="text-slate-700">{formatNumber(row.stock)}</strong>
+                    <strong className="text-foreground">{formatNumber(row.stock)}</strong>
                   </p>
                 </article>
               ))}
@@ -165,7 +165,7 @@ function ForecastingPage() {
           )}
         </section>
 
-        <p className="text-xs leading-relaxed text-slate-500">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           هذا تقدير وصفي وليس نموذجًا تنبؤيًا آليًا؛ لا يغيّر المخزون أو ينشئ أوامر شراء تلقائيًا.
           يمكن ربطه لاحقًا بتاريخ التوريد والموسمية بعد تفعيل Schema الموردين وأوامر الشراء.
         </p>
@@ -212,9 +212,9 @@ function formatDays(value: number) {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-2">
-      <p className="text-[11px] text-slate-500">{label}</p>
-      <p className="mt-1 font-black text-slate-800">{value}</p>
+    <div className="rounded-xl border border-border bg-muted/70 p-2">
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className="mt-1 font-black text-foreground">{value}</p>
     </div>
   );
 }
@@ -238,16 +238,16 @@ function SummaryCard({
     amber: "bg-amber-50 text-amber-700",
   };
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-5">
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-5">
       <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${tones[tone]}`}>مؤشر</span>
       <div className="mt-3 flex items-center gap-3">
         <div className={`grid size-11 shrink-0 place-items-center rounded-xl ${tones[tone]}`}>
           <Icon className="size-5" />
         </div>
         <div>
-          <p className="text-xs font-bold text-slate-500">{label}</p>
-          <p className="mt-1 text-2xl font-black text-slate-900">
-            {formatNumber(value)} <span className="text-xs font-bold text-slate-500">{suffix}</span>
+          <p className="text-xs font-bold text-muted-foreground">{label}</p>
+          <p className="mt-1 text-2xl font-black text-foreground">
+            {formatNumber(value)} <span className="text-xs font-bold text-muted-foreground">{suffix}</span>
           </p>
         </div>
       </div>
@@ -294,13 +294,13 @@ function AiInsights({ rows, disabled }: { rows: ForecastRow[]; disabled: boolean
   };
 
   return (
-    <section className="rounded-3xl border border-emerald-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-6">
+    <section className="rounded-3xl border border-emerald-100 bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="flex items-center gap-2 text-lg font-black text-slate-900">
+          <h2 className="flex items-center gap-2 text-lg font-black text-foreground">
             <Sparkles className="size-5 text-emerald-600" /> توصيات الذكاء الاصطناعي
           </h2>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-muted-foreground">
             {savedAt
               ? `آخر تحليل: ${new Date(savedAt).toLocaleString("ar-EG")} — يُحفظ 24 ساعة`
               : "يعمل فقط عند الضغط، على أكثر 7 أصناف معرضة للنقص."}
@@ -310,7 +310,7 @@ function AiInsights({ rows, disabled }: { rows: ForecastRow[]; disabled: boolean
           <Sparkles className="size-4" /> {busy ? "جارٍ التحليل…" : text ? "تحليل من جديد" : "تحليل التوقعات بالذكاء الاصطناعي"}
         </Button>
       </div>
-      {text && <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-slate-700">{text}</p>}
+      {text && <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-foreground">{text}</p>}
     </section>
   );
 }

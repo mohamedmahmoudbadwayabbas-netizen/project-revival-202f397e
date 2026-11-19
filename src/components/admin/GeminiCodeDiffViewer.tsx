@@ -232,11 +232,11 @@ export function GeminiCodeDiffViewer({
         {viewMode === "split" ? (
           <div className="grid grid-cols-2 gap-4 divide-x divide-slate-800">
             <div>
-              <div className="text-[10px] text-slate-400 font-bold mb-2 pb-1 border-b border-slate-800 flex items-center justify-between">
+              <div className="text-[10px] text-muted-foreground font-bold mb-2 pb-1 border-b border-slate-800 flex items-center justify-between">
                 <span>BEFORE (الأصل)</span>
                 <span>{originalCode.split("\n").length} سطر</span>
               </div>
-              <pre className="text-slate-400 opacity-80 whitespace-pre-wrap leading-relaxed text-[11px]">
+              <pre className="text-muted-foreground opacity-80 whitespace-pre-wrap leading-relaxed text-[11px]">
                 {originalCode}
               </pre>
             </div>
