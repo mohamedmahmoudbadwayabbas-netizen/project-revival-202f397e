@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { WadiPulseBar } from "@/components/admin/WadiPulseBar";
 import { fetchOrdersWithItems } from "@/services/orderDataService";
 import {
   Activity,
@@ -217,6 +218,9 @@ function OverviewPage() {
 
   return (
     <div className="admin-dashboard space-y-6 font-sans">
+      {/* 0. نبض الوادي — مؤشرات حية */}
+      <WadiPulseBar />
+
       {/* 1. Unified Command Header */}
       <section className="admin-dashboard__hero">
         <div className="space-y-1.5 min-w-0">
@@ -422,40 +426,40 @@ function OverviewPage() {
       <SmartInsights />
 
       {/* Live actions inspired by the supplied executive dashboard concept. */}
-      <section className="rounded-3xl border border-slate-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-5" dir="rtl">
+      <section className="rounded-3xl border border-border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-5" dir="rtl">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="text-sm font-black text-slate-900">محتاج تدخلك دلوقتي</h2>
-            <p className="mt-1 text-xs text-slate-500">تنبيهات مرتبطة ببيانات المتجر الحالية</p>
+            <h2 className="text-sm font-black text-foreground">محتاج تدخلك دلوقتي</h2>
+            <p className="mt-1 text-xs text-muted-foreground">تنبيهات مرتبطة ببيانات المتجر الحالية</p>
           </div>
           <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">مباشر</span>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <Link to="/admin/orders" className="group rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:border-emerald-200 hover:bg-emerald-50/40 hover:shadow-sm">
+          <Link to="/admin/orders" className="group rounded-2xl border border-border bg-muted/60 p-4 transition-all duration-200 hover:border-emerald-200 hover:bg-emerald-50/40 hover:shadow-sm">
             <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">طلبات</span>
-            <strong className="mt-2 block text-2xl font-black text-slate-900">{ordersNeedingReview.length}</strong>
-            <span className="mt-1 block text-xs text-slate-600">من أحدث 500 طلب محمّل</span>
+            <strong className="mt-2 block text-2xl font-black text-foreground">{ordersNeedingReview.length}</strong>
+            <span className="mt-1 block text-xs text-muted-foreground">من أحدث 500 طلب محمّل</span>
             <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-700">مراجعة الطلبات <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" /></span>
           </Link>
-          <Link to="/admin/products" className="group rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:border-amber-200 hover:bg-amber-50/40 hover:shadow-sm">
+          <Link to="/admin/products" className="group rounded-2xl border border-border bg-muted/60 p-4 transition-all duration-200 hover:border-amber-200 hover:bg-amber-50/40 hover:shadow-sm">
             <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">المخزون</span>
-            <strong className="mt-2 block text-2xl font-black text-slate-900">{lowStockItems.length}</strong>
-            <span className="mt-1 block truncate text-xs text-slate-600">
+            <strong className="mt-2 block text-2xl font-black text-foreground">{lowStockItems.length}</strong>
+            <span className="mt-1 block truncate text-xs text-muted-foreground">
               {lowStockItems[0]?.name || (productsTruncated ? "لا توجد تنبيهات في العينة المحمّلة" : "كل الأصناف فوق حد الأمان")}
             </span>
             {productsTruncated && <span className="mt-1 block text-[10px] text-amber-700">أول 5000 منتج نشط فقط</span>}
             <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-700">فحص المخزون <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" /></span>
           </Link>
           <Link to="/admin/copilot" className="group rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4 transition-all duration-200 hover:border-emerald-200 hover:bg-emerald-50 hover:shadow-sm">
-            <span className="inline-flex rounded-full bg-white px-2.5 py-0.5 text-xs font-semibold text-emerald-700">نبراس</span>
-            <strong className="mt-2 block text-base font-black text-slate-900">قرارات تشغيلية بمراجعتك</strong>
-            <span className="mt-1 block text-xs text-slate-600">حلّل الطلبات أو المخزون، ثم راجع الأثر قبل أي تعديل.</span>
+            <span className="inline-flex rounded-full bg-card px-2.5 py-0.5 text-xs font-semibold text-emerald-700">نبراس</span>
+            <strong className="mt-2 block text-base font-black text-foreground">قرارات تشغيلية بمراجعتك</strong>
+            <span className="mt-1 block text-xs text-muted-foreground">حلّل الطلبات أو المخزون، ثم راجع الأثر قبل أي تعديل.</span>
             <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-700">افتح نبراس <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" /></span>
           </Link>
-          <Link to="/admin/governance" className="group rounded-2xl border border-slate-100 bg-slate-50/60 p-4 transition-all duration-200 hover:border-emerald-200 hover:bg-emerald-50/40 hover:shadow-sm">
+          <Link to="/admin/governance" className="group rounded-2xl border border-border bg-muted/60 p-4 transition-all duration-200 hover:border-emerald-200 hover:bg-emerald-50/40 hover:shadow-sm">
             <span className="inline-flex rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-semibold text-violet-700">الموافقات</span>
-            <strong className="mt-2 block text-2xl font-black text-slate-900">{pendingApprovals ?? "—"}</strong>
-            <span className="mt-1 block text-xs text-slate-600">اقتراح بانتظار المراجعة</span>
+            <strong className="mt-2 block text-2xl font-black text-foreground">{pendingApprovals ?? "—"}</strong>
+            <span className="mt-1 block text-xs text-muted-foreground">اقتراح بانتظار المراجعة</span>
             <span className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-emerald-700">مراجعة المقترحات <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" /></span>
           </Link>
         </div>

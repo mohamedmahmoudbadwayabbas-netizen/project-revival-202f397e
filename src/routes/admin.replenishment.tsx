@@ -87,15 +87,15 @@ function ReplenishmentPage() {
   );
 
   return (
-    <main className="admin-lux min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8" dir="rtl">
+    <main className="admin-lux min-h-screen bg-muted p-4 sm:p-6 lg:p-8" dir="rtl">
       <div className="mx-auto max-w-7xl space-y-6">
         <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="text-sm font-bold text-emerald-600">العمليات والمخزون</p>
-            <h1 className="mt-1 text-2xl font-black text-slate-900 sm:text-3xl">
+            <h1 className="mt-1 text-2xl font-black text-foreground sm:text-3xl">
               اقتراحات إعادة الشراء
             </h1>
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-muted-foreground">
               قائمة تشغيلية بالأصناف التي وصلت إلى حد التنبيه أو أقل.
             </p>
           </div>
@@ -120,11 +120,11 @@ function ReplenishmentPage() {
           />
         </section>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <section className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-6">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-lg font-black text-slate-900">قائمة الأولويات</h2>
+            <h2 className="text-lg font-black text-foreground">قائمة الأولويات</h2>
             <div className="relative w-full sm:max-w-xs">
-              <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -135,7 +135,7 @@ function ReplenishmentPage() {
           </div>
 
           {loading ? (
-            <div className="py-12 text-center text-sm text-slate-500">جارٍ تحميل المخزون…</div>
+            <div className="py-12 text-center text-sm text-muted-foreground">جارٍ تحميل المخزون…</div>
           ) : suggestions.length === 0 ? (
             <div className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50 p-8 text-center text-sm font-bold text-emerald-700">
               لا توجد أصناف تحت حد التنبيه حاليًا.
@@ -148,18 +148,18 @@ function ReplenishmentPage() {
                 return (
                   <article
                     key={product.id}
-                    className="flex flex-col gap-4 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-4 rounded-xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="truncate font-bold text-slate-900">{product.name}</h3>
+                        <h3 className="truncate font-bold text-foreground">{product.name}</h3>
                         {isCritical && (
                           <span className="shrink-0 rounded-full bg-red-50 px-2 py-1 text-xs font-bold text-red-600">
                             نافد
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-sm text-slate-500">
+                      <p className="mt-1 text-sm text-muted-foreground">
                         المتاح:{" "}
                         <strong className={isCritical ? "text-red-600" : "text-amber-600"}>
                           {product.stock}
@@ -169,10 +169,10 @@ function ReplenishmentPage() {
                     </div>
                     <div className="flex items-center justify-between gap-5 sm:justify-end">
                       <div className="text-start">
-                        <p className="text-xs text-slate-500">الكمية المقترحة</p>
+                        <p className="text-xs text-muted-foreground">الكمية المقترحة</p>
                         <p className="text-lg font-black text-emerald-700">{recommended} وحدة</p>
                       </div>
-                      <span className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-500">
+                      <span className="rounded-lg bg-muted px-3 py-2 text-xs font-bold text-muted-foreground">
                         لا يوجد مورد مرتبط
                       </span>
                     </div>
@@ -183,7 +183,7 @@ function ReplenishmentPage() {
           )}
         </section>
 
-        <p className="text-xs leading-relaxed text-slate-500">
+        <p className="text-xs leading-relaxed text-muted-foreground">
           هذه الاقتراحات مبنية على المخزون الحالي وحد التنبيه. إنشاء أمر شراء وربطه بمورد يتطلب
           تفعيل جداول الموردين وأوامر الشراء وRPC الخادمي.
         </p>
@@ -209,13 +209,13 @@ function SummaryCard({
     amber: "bg-amber-50 text-amber-700",
   };
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm">
       <div className={`grid size-11 place-items-center rounded-xl ${tones[tone]}`}>
         <Icon className="size-5" />
       </div>
       <div>
-        <p className="text-xs font-bold text-slate-500">{label}</p>
-        <p className="mt-1 text-2xl font-black text-slate-900">{value}</p>
+        <p className="text-xs font-bold text-muted-foreground">{label}</p>
+        <p className="mt-1 text-2xl font-black text-foreground">{value}</p>
       </div>
     </div>
   );

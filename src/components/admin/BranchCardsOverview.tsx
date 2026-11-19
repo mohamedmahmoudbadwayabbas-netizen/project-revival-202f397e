@@ -72,7 +72,7 @@ export function BranchCardsOverview({
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-36 rounded-xl bg-zinc-100 dark:bg-zinc-800 animate-pulse border border-zinc-200/60 dark:border-zinc-800"
+            className="h-36 rounded-xl bg-muted animate-pulse border border-border/60"
           />
         ))}
       </div>
@@ -85,7 +85,7 @@ export function BranchCardsOverview({
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Building2 className="h-4 w-4 text-emerald-600" strokeWidth={1.5} />
-          <h3 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+          <h3 className="text-xs font-bold text-foreground">
             فروع السوبرماركت ({branches.length})
           </h3>
         </div>
@@ -129,8 +129,8 @@ export function BranchCardsOverview({
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] text-zinc-400 flex items-center gap-1 mt-0.5 truncate">
-                    <MapPin className="h-3 w-3 text-zinc-400 shrink-0" strokeWidth={1.5} />
+                  <div className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5 truncate">
+                    <MapPin className="h-3 w-3 text-muted-foreground shrink-0" strokeWidth={1.5} />
                     <span className="truncate">{branch.address}</span>
                   </div>
                 </div>
@@ -143,21 +143,21 @@ export function BranchCardsOverview({
               </div>
 
               {/* Metrics */}
-              <div className="grid grid-cols-3 gap-2 my-3 p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
+              <div className="grid grid-cols-3 gap-2 my-3 p-2.5 rounded-lg bg-muted border border-border">
                 <div>
-                  <span className="text-[10px] text-zinc-500 block">المبيعات</span>
-                  <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                  <span className="text-[10px] text-muted-foreground block">المبيعات</span>
+                  <span className="text-xs font-bold text-foreground">
                     <AnimatedCounter value={branch.stats.todayRevenue} suffix="ج.م" />
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-zinc-500 block">الطلبات</span>
-                  <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                  <span className="text-[10px] text-muted-foreground block">الطلبات</span>
+                  <span className="text-xs font-bold text-foreground">
                     {branch.stats.activeOrders}
                   </span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-zinc-500 block">الجاهزية</span>
+                  <span className="text-[10px] text-muted-foreground block">الجاهزية</span>
                   <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400">
                     %{branch.stats.stockHealth}
                   </span>
@@ -165,7 +165,7 @@ export function BranchCardsOverview({
               </div>
 
               {/* Footer info */}
-              <div className="flex items-center justify-between text-[11px] text-zinc-500 pt-1">
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
                 <span>{branch.stats.totalProducts} صنف</span>
                 {branch.stats.lowStockItems > 0 && (
                   <span className="text-amber-600 dark:text-amber-400 font-medium">

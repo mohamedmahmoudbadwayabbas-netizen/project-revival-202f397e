@@ -82,7 +82,7 @@ const PALETTE_META: Record<
     name: "الرمادي المينيمال الهادئ",
     primary: "rgb(100, 116, 139)",
     gradient: "linear-gradient(135deg, rgb(100, 116, 139) 0%, rgb(51, 65, 85) 100%)",
-    text: "text-slate-600",
+    text: "text-muted-foreground",
     bgSoft: "bg-slate-500/10",
   },
 };
