@@ -1056,28 +1056,7 @@ function AdminCoPilotPage() {
         <WadiPulseBar onAsk={(p) => void handleSendMessage(p)} />
       </div>
 
-      <div className="grid flex-none grid-cols-2 gap-2 border-b border-border bg-muted/70 px-3 py-2 sm:grid-cols-4 sm:px-5" aria-label="مؤشرات المتجر">
-        <Link to="/admin/orders" className="rounded-2xl border border-border bg-card px-3 py-2 shadow-sm transition-all duration-200 hover:shadow-md">
-          <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">الطلبات</span>
-          <strong className="mt-1 block text-xl font-black text-foreground">{storeDataStatus.orders ?? "—"}</strong>
-          <span className="text-[11px] text-muted-foreground">إجمالي الطلبات المسجلة</span>
-        </Link>
-        <Link to="/admin/products" className="rounded-2xl border border-border bg-card px-3 py-2 shadow-sm transition-all duration-200 hover:shadow-md">
-          <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">الكتالوج</span>
-          <strong className="mt-1 block text-xl font-black text-foreground">{storeDataStatus.products ?? "—"}</strong>
-          <span className="text-[11px] text-muted-foreground">المنتجات المسجلة</span>
-        </Link>
-        <Link to="/admin/products" className="rounded-2xl border border-border bg-card px-3 py-2 shadow-sm transition-all duration-200 hover:shadow-md">
-          <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">حد الأمان</span>
-          <strong className="mt-1 block text-xl font-black text-foreground">{storeDataStatus.lowStock ?? "—"}</strong>
-          <span className="text-[11px] text-muted-foreground">{storeDataStatus.stockTruncated ? "في عينة 5000 منتج" : "منتج عند حد المخزون أو دونه"}</span>
-        </Link>
-        <button type="button" onClick={() => openWorkspaceMode("review")} className="rounded-2xl border border-border bg-card px-3 py-2 text-right shadow-sm transition-all duration-200 hover:shadow-md">
-          <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${pendingAction ? "bg-amber-50 text-amber-700" : "bg-muted text-muted-foreground"}`}>مراجعتك</span>
-          <strong className="mt-1 block text-xl font-black text-foreground">{pendingAction ? "1" : "0"}</strong>
-          <span className="text-[11px] text-muted-foreground">اقتراح ينتظر اعتمادك</span>
-        </button>
-      </div>
+
 
       {/* ─── 2. MAIN WORKSPACE ─── */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
