@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { WadiPulseBar } from "@/components/admin/WadiPulseBar";
 import { fetchOrdersWithItems } from "@/services/orderDataService";
 import {
   Activity,
@@ -217,6 +218,9 @@ function OverviewPage() {
 
   return (
     <div className="admin-dashboard space-y-6 font-sans">
+      {/* 0. نبض الوادي — مؤشرات حية */}
+      <WadiPulseBar />
+
       {/* 1. Unified Command Header */}
       <section className="admin-dashboard__hero">
         <div className="space-y-1.5 min-w-0">

@@ -55,6 +55,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { supabase } from "@/integrations/supabase/client";
+import { WadiPulseBar } from "@/components/admin/WadiPulseBar";
 import { useSettings } from "@/lib/settings-context";
 import { BRAND_NAME_AR } from "@/lib/brand";
 import { useAuth } from "@/lib/auth-context";
@@ -837,7 +838,7 @@ function AdminCoPilotPage() {
 
   return (
     <div
-      className="relative flex h-[calc(100dvh-3.5rem)] w-full flex-col overflow-hidden bg-card font-sans"
+      className="relative flex h-[calc(100dvh-4rem)] w-full flex-col overflow-hidden bg-background font-sans"
       dir="rtl"
     >
       {/* ─── 1. SINGLE UNIFIED SLIM HEADER (Gemini / Claude Style) ─── */}
@@ -1051,6 +1052,9 @@ function AdminCoPilotPage() {
           )}
         </AnimatePresence>
       </header>
+      <div className="flex-none border-b border-border bg-background px-3 py-3 sm:px-5">
+        <WadiPulseBar onAsk={(p) => void handleSendMessage(p)} />
+      </div>
 
       <div className="grid flex-none grid-cols-2 gap-2 border-b border-border bg-muted/70 px-3 py-2 sm:grid-cols-4 sm:px-5" aria-label="مؤشرات المتجر">
         <Link to="/admin/orders" className="rounded-2xl border border-border bg-card px-3 py-2 shadow-sm transition-all duration-200 hover:shadow-md">
