@@ -41,6 +41,7 @@ import { Button } from "@/components/ui/button";
 import { BRAND_NAME_AR } from "@/lib/brand";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useWadiPulse } from "@/components/admin/WadiPulseBar";
 
 interface NavSection {
   label: string;
@@ -65,10 +66,10 @@ const navSections: NavSection[] = [
         exact: true,
       },
       {
-        title: "المساعد الذكي",
+        title: "نبراس، المساعد الذكي",
         url: "/admin/copilot",
         icon: Sparkles,
-        badge: "AI",
+        badge: "pending",
         badgeVariant: "emerald",
       },
     ],
@@ -170,6 +171,9 @@ export function AdminSidebar() {
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { user, signOut } = useAuth();
+  const pulse = useWadiPulse();
+  const badgeText = (b: string) =>
+    b === "pending" ? (pulse?.pendingProposals ? String(pulse.pendingProposals) : "AI") : b;
 
   const isActive = (url: string, exact?: boolean) =>
     exact ? pathname === url : pathname === url || pathname.startsWith(url + "/");
@@ -249,7 +253,7 @@ export function AdminSidebar() {
                                 "bg-sidebar-primary text-sidebar-primary-foreground",
                               )}
                             >
-                              {item.badge}
+                              {badgeText(item.badge)}
                             </span>
                           )}
                         </Link>
@@ -266,20 +270,21 @@ export function AdminSidebar() {
       {/* Sidebar Footer */}
       <SidebarFooter className="border-t border-sidebar-border p-3 space-y-1.5">
         {!collapsed && (
-          <div className="px-2 py-1.5 rounded-xl bg-sidebar-accent border border-sidebar-border text-[11px] flex items-center justify-between">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <ShieldCheck
-                className="h-3.5 w-3.5 text-sidebar-primary shrink-0"
-                strokeWidth={1.5}
-              />
-              <span className="truncate text-sidebar-foreground font-mono text-[10px]" dir="ltr">
-                {user?.email || "admin@store.com"}
-              </span>
-            </div>
-            <span className="text-[9px] font-semibold text-sidebar-primary-foreground bg-sidebar-primary px-1.5 py-0.5 rounded">
-              مسؤول
+          <Link
+            to="/admin/profile"
+            className="flex items-center gap-2.5 rounded-2xl border border-sidebar-border bg-sidebar-accent p-2.5 hover:border-sidebar-primary/50"
+          >
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sidebar-primary text-sm font-extrabold text-sidebar-primary-foreground">
+              {(user?.email || "م").charAt(0).toUpperCase()}
             </span>
-          </div>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[12px] font-bold text-sidebar-accent-foreground">مسؤول النظام</span>
+              <span className="block truncate font-mono text-[10px] text-sidebar-foreground" dir="ltr">
+                {user?.email || "admin"}
+              </span>
+            </span>
+            <ShieldCheck className="h-4 w-4 shrink-0 text-sidebar-primary" strokeWidth={1.5} />
+          </Link>
         )}
 
         <Link to="/" className="block">
