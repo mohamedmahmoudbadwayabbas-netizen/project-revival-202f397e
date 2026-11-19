@@ -3665,3 +3665,75 @@ html:not(.dark) [class*="text-orange-600"] {
 .dark .tile-purple {
   background: oklch(0.28 0.03 160);
 }
+
+/* ─── WADI EXECUTIVE IDENTITY (cream/emerald light · forest/mint dark) ─── */
+.admin-lux {
+  --background: 43 50% 93%;
+  --foreground: 150 33% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 150 33% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 150 33% 11%;
+  --primary: 156 76% 31%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 145 38% 91%;
+  --secondary-foreground: 158 59% 14%;
+  --muted: 43 40% 89%;
+  --muted-foreground: 146 8% 41%;
+  --accent: 145 38% 91%;
+  --accent-foreground: 158 59% 14%;
+  --border: 45 33% 84%;
+  --input: 45 33% 82%;
+  --ring: 156 76% 31%;
+  --gold: 39 87% 62%;
+  --gold-foreground: 35 100% 15%;
+  --sidebar: 158 59% 14%;
+  --sidebar-foreground: 145 20% 78%;
+  --sidebar-primary: 153 62% 49%;
+  --sidebar-primary-foreground: 158 59% 10%;
+  --sidebar-accent: 158 45% 20%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 158 40% 20%;
+  --sidebar-ring: 153 62% 49%;
+  --shadow-lux: 0 1px 2px rgba(18, 36, 27, 0.05), 0 8px 24px rgba(18, 36, 27, 0.06);
+}
+.admin-lux.dark,
+.dark .admin-lux {
+  --background: 157 48% 5%;
+  --foreground: 150 24% 93%;
+  --card: 155 44% 8%;
+  --card-foreground: 150 24% 93%;
+  --popover: 155 44% 8%;
+  --popover-foreground: 150 24% 93%;
+  --primary: 153 62% 49%;
+  --primary-foreground: 158 59% 8%;
+  --secondary: 151 42% 11%;
+  --secondary-foreground: 150 24% 93%;
+  --muted: 151 42% 11%;
+  --muted-foreground: 147 12% 65%;
+  --accent: 151 42% 12%;
+  --accent-foreground: 150 24% 93%;
+  --border: 147 31% 15%;
+  --input: 147 31% 18%;
+  --ring: 153 62% 49%;
+  --gold: 39 87% 62%;
+  --sidebar: 159 69% 6%;
+  --sidebar-accent: 151 42% 12%;
+  --sidebar-border: 147 31% 13%;
+  --shadow-lux: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+/* Unified card/table/input language for every admin page */
+.admin-lux main [data-slot="card"],
+.admin-lux main .rounded-lg.border.bg-card,
+.admin-lux main .rounded-xl.border.bg-card {
+  border-radius: 1.25rem;
+  border-color: hsl(var(--border));
+  box-shadow: var(--shadow-lux);
+}
+.admin-lux main table thead tr { background: hsl(var(--muted) / 0.6); }
+.admin-lux main table th { color: hsl(var(--muted-foreground)); font-weight: 700; font-size: 12px; }
+.admin-lux main table tbody tr:hover { background: hsl(var(--accent) / 0.6); }
+.admin-lux main input,
+.admin-lux main textarea,
+.admin-lux main [role="combobox"] { border-radius: 0.85rem; }
+.admin-lux main h1 { letter-spacing: -0.01em; }
