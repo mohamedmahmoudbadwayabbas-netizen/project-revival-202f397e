@@ -213,7 +213,7 @@ function NebrasThinkingIndicator() {
       </div>
 
       {/* Thinking Bubble with Animated Dots & Rotating Status */}
-      <div className="flex flex-col gap-1.5 rounded-3xl rounded-tr-md border border-emerald-200/60 bg-gradient-to-l from-emerald-50/60 via-white to-slate-50/70 px-4 py-3 shadow-2xs dark:border-emerald-500/20 dark:from-emerald-950/30">
+      <div className="flex flex-col gap-1.5 rounded-3xl rounded-tr-md border border-emerald-200/60 bg-gradient-to-l from-emerald-50/60 via-card to-muted/70 px-4 py-3 shadow-2xs dark:border-emerald-500/20 dark:from-emerald-950/30">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1" aria-hidden="true">
             {[0, 1, 2].map((dot) => (
@@ -1316,7 +1316,7 @@ function AdminCoPilotPage() {
           </div>
 
           {/* ─── 3. UNIFIED FLOATING PROMPT COMPOSER ─── */}
-          <div className="flex-none bg-gradient-to-t from-white via-white to-transparent px-3 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] sm:px-6">
+          <div className="flex-none bg-gradient-to-t from-background via-background to-transparent px-3 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] sm:px-6">
             <form onSubmit={handleFormSubmit} className="mx-auto max-w-3xl">
               <div className="rounded-3xl border border-border/90 bg-muted/90 p-2 shadow-sm transition-all focus-within:border-emerald-500/60 focus-within:bg-card focus-within:ring-4 focus-within:ring-emerald-500/10 dark:bg-card/[0.04] dark:focus-within:bg-[#131822]">
                 {attachedFile && (
