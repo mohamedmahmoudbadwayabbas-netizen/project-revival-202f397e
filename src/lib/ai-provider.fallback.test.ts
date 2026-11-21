@@ -9,7 +9,6 @@ import {
   callOpenAICompatible,
   defaultVaultPriority,
   KEYLESS_KILO_MODELS_URL,
-  OPENROUTER_FREE_MODEL,
   modelQueue,
   openAIToGemini,
   parseBulkVaultKeyImport,
@@ -17,6 +16,7 @@ import {
   shouldFallbackToKeyless,
   suggestedModels,
 } from "./ai-provider.server";
+import { OPENROUTER_FREE_MODEL } from "./ai-providers";
 for (const k of Object.keys(process.env)) if (/^GROQ_API_KEY/.test(k)) delete process.env[k]; // Dahl fallback tests must not hit the real Groq key
 
 describe("provider fallback & thinking", () => {
