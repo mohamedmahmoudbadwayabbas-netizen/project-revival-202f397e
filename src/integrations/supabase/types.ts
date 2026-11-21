@@ -122,6 +122,44 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_exemplars: {
+        Row: {
+          conversation: Json
+          created_at: string
+          id: string
+          order_id: string | null
+          rating: number | null
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          conversation: Json
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          rating?: number | null
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          conversation?: Json
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          rating?: number | null
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_exemplars_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_feedback: {
         Row: {
           comment: string | null
@@ -853,6 +891,57 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_movements: {
+        Row: {
+          created_at: string
+          id: string
+          movement_type: string
+          order_id: string | null
+          performed_by: string | null
+          product_id: string
+          quantity: number
+          stock_after: number
+          stock_before: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          movement_type: string
+          order_id?: string | null
+          performed_by?: string | null
+          product_id: string
+          quantity: number
+          stock_after: number
+          stock_before: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          movement_type?: string
+          order_id?: string | null
+          performed_by?: string | null
+          product_id?: string
+          quantity?: number
+          stock_after?: number
+          stock_before?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nawat_threads: {
         Row: {
           created_at: string
@@ -922,6 +1011,7 @@ export type Database = {
       orders: {
         Row: {
           address: string | null
+          attributed_session_id: string | null
           coupon_code: string | null
           created_at: string | null
           customer_name: string | null
@@ -946,6 +1036,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          attributed_session_id?: string | null
           coupon_code?: string | null
           created_at?: string | null
           customer_name?: string | null
@@ -970,6 +1061,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          attributed_session_id?: string | null
           coupon_code?: string | null
           created_at?: string | null
           customer_name?: string | null
@@ -1668,40 +1760,37 @@ export type Database = {
       }
     }
     Functions: {
-      create_order:
-        | {
-            Args: {
-              p_address: string
-              p_coupon_code: string
-              p_customer_name: string
-              p_delivery_method: string
-              p_delivery_zone_id: string
-              p_items: Json
-              p_notes: string
-              p_payment_method: string
-              p_payment_reference: string
-              p_phone: string
-              p_ref_source: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_address: string
-              p_coupon_code: string
-              p_customer_name: string
-              p_delivery_method: string
-              p_delivery_zone_id: string
-              p_idempotency_key?: string
-              p_items: Json
-              p_notes: string
-              p_payment_method: string
-              p_payment_reference: string
-              p_phone: string
-              p_ref_source: string
-            }
-            Returns: string
-          }
+      calculate_order_quote: {
+        Args: {
+          p_coupon_code?: string
+          p_delivery_zone_id?: string
+          p_items: Json
+        }
+        Returns: Json
+      }
+      cancel_order_with_restock: {
+        Args: { p_order_id: string; p_reason?: string }
+        Returns: boolean
+      }
+      create_order: {
+        Args: {
+          p_address: string
+          p_attributed_session_id: string
+          p_coupon_code: string
+          p_customer_name: string
+          p_delivery_method: string
+          p_delivery_zone_id: string
+          p_idempotency_key: string
+          p_items: Json
+          p_notes: string
+          p_payment_method: string
+          p_payment_reference: string
+          p_phone: string
+          p_quote_token: string
+          p_ref_source: string
+        }
+        Returns: string
+      }
       get_my_role: { Args: never; Returns: string }
       get_payment_config: {
         Args: never
@@ -1751,14 +1840,26 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
-      validate_coupon: {
-        Args: { p_code: string; p_subtotal: number }
-        Returns: {
-          code: string
-          discount_type: string
-          discount_value: number
-        }[]
-      }
+      validate_coupon:
+        | {
+            Args: { p_code: string }
+            Returns: {
+              code: string
+              discount_type: string
+              discount_value: number
+              is_valid: boolean
+              message: string
+              min_order_amount: number
+            }[]
+          }
+        | {
+            Args: { p_code: string; p_subtotal: number }
+            Returns: {
+              code: string
+              discount_type: string
+              discount_value: number
+            }[]
+          }
     }
     Enums: {
       [_ in never]: never
