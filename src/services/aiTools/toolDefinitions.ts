@@ -404,6 +404,28 @@ const ALL_AI_TOOL_SUITE: AiToolDefinition[] = [
     },
   },
   {
+    name: "getInventoryAlerts",
+    group: "operations",
+    labelAr: "فحص تنبيهات المخزون",
+    descriptionAr:
+      "قراءة المنتجات النشطة ومقارنة المخزون بحد الأمان لكل منتج، ثم إرجاع النواقص والمنتجات النافدة مع الوحدة والكمية. لا تعدّل المخزون.",
+    mutatesState: false,
+    declaration: {
+      name: "getInventoryAlerts",
+      description:
+        "Read active products from Supabase and report products at or below their configured low-stock threshold, including out-of-stock items. Read-only; never changes inventory. The returned checked/truncated fields describe coverage.",
+      parameters: {
+        type: "object",
+        properties: {
+          severity: enumStr("Filter alerts: all | low | out", ["all", "low", "out"]),
+          threshold: num("Optional override for the per-product low-stock threshold"),
+          limit: num("Maximum number of alert items to return (1–100, default 20)"),
+        },
+        required: [],
+      },
+    },
+  },
+  {
     name: "updateStoreAnnouncement",
     group: "operations",
     labelAr: "تحديث شريط الإعلان",

@@ -1,6 +1,6 @@
 // خزانة مفاتيح الذكاء الاصطناعي (جدول ai_key_vault). تُقرأ على الخادم فقط بصلاحية الخدمة.
 // المفاتيح لا تُحذف تلقائيًا أبدًا: الفشل يغير الحالة/التبريد فقط.
-import { findPreset } from "@/lib/ai-providers";
+import { findPreset, OPENROUTER_FREE_MODEL } from "@/lib/ai-providers";
 
 export type VaultKey = {
   id: string;
@@ -71,5 +71,76 @@ export async function markVaultKey(apiKey: string, patch: Record<string, unknown
       .eq("api_key", apiKey);
   } catch {
     /* لا نوقف الرد بسبب تحديث إحصائي */
+  }
+}
+
+export type VaultProbeResult = "healthy" | "rate_limited" | "invalid" | "unavailable";
+
+/** فحص قصير من الخادم فقط؛ لا يعيد المفتاح أو نص الاستجابة إلى المتصفح. */
+export async function probeVaultKey(key: VaultKey): Promise<VaultProbeResult> {
+  const provider = String(key.provider).toLowerCase();
+  const preset = findPreset(provider);
+  const base = (key.base_url || preset?.baseUrl || "").replace(/\/+$/, "");
+  let model = key.model || preset?.modelHint;
+  if (!key.api_key || (!base && provider !== "gemini") || (!model && provider !== "gemini"))
+    return "unavailable";
+
+  try {
+    const isGemini = provider === "gemini";
+    if (provider === "openrouter" && model === OPENROUTER_FREE_MODEL) {
+      const { firstOpenRouterFreeModel } = await import("@/lib/ai-provider.server");
+      model = await firstOpenRouterFreeModel();
+    }
+    const response = await fetch(
+      isGemini ? "https://generativelanguage.googleapis.com/v1beta/models" : `${base}/chat/completions`,
+      {
+        method: isGemini ? "GET" : "POST",
+        headers: isGemini
+          ? { "x-goog-api-key": key.api_key, Accept: "application/json" }
+          : { "Content-Type": "application/json", Authorization: `Bearer ${key.api_key}` },
+        ...(isGemini
+          ? {}
+          : { body: JSON.stringify({ model, messages: [{ role: "user", content: "OK" }], max_tokens: 1 }) }),
+        redirect: "error",
+        signal: AbortSignal.timeout(15000),
+      },
+    );
+    await response.body?.cancel().catch(() => {});
+    if (response.ok) {
+      await markVaultKey(key.api_key, {
+        ...(key.status === "disabled" ? {} : { status: "active", cooldown_until: null }),
+        last_error: null,
+      });
+      return "healthy";
+    }
+    if (response.status === 401 || response.status === 403) {
+      await markVaultKey(key.api_key, {
+        status: key.status === "disabled" ? "disabled" : "invalid",
+        ...(key.status === "disabled" ? {} : { cooldown_until: null }),
+        last_error: String(response.status),
+      });
+      return "invalid";
+    }
+    if (response.status === 429 || response.status === 402) {
+      const retryAfter = Number(response.headers.get("retry-after"));
+      const cooldownMs = response.status === 402
+        ? 60 * 60 * 1000
+        : retryAfter > 0 ? Math.min(retryAfter * 1000, 10 * 60 * 1000) : 60 * 1000;
+      await markVaultKey(key.api_key, {
+        ...(key.status === "disabled"
+          ? {}
+          : {
+              status: response.status === 402 ? "exhausted" : "cooling_down",
+              cooldown_until: new Date(Date.now() + cooldownMs).toISOString(),
+            }),
+        last_error: String(response.status),
+      });
+      return "rate_limited";
+    }
+    await markVaultKey(key.api_key, { last_error: String(response.status) });
+    return "unavailable";
+  } catch {
+    await markVaultKey(key.api_key, { last_error: "network" });
+    return "unavailable";
   }
 }

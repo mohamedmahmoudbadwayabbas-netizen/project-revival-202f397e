@@ -23,6 +23,7 @@ import {
   updateRawJsonMetadata,
   manageUsersAndRoles,
   exportReportsAndAnalytics,
+  getInventoryAlerts,
   updateStoreAnnouncement,
   manageDeliveryZones,
 } from "./operationalTools";
@@ -121,6 +122,9 @@ async function _executeAiToolInner(
       break;
     case "exportReportsAndAnalytics":
       result = await exportReportsAndAnalytics(args as any, ctx);
+      break;
+    case "getInventoryAlerts":
+      result = await getInventoryAlerts(args as any);
       break;
     case "updateStoreAnnouncement":
       result = await updateStoreAnnouncement(args as any, ctx);

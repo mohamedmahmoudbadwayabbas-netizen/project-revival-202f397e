@@ -8,13 +8,16 @@ export type AiProviderPreset = {
   keyUrl?: string;
 };
 
+/** Sentinel resolved server-side to a model whose OpenRouter input/output rates are both zero. */
+export const OPENROUTER_FREE_MODEL = "__openrouter_free__";
+
 export const AI_PROVIDER_PRESETS: AiProviderPreset[] = [
   {
     id: "gemini",
     label: "Google Gemini",
     baseUrl: "",
-    modelHint: "gemini-3.5-flash",
-    keyUrl: "https://aistudio.google.com/apikey",
+    modelHint: "gemini-3.1-flash-lite",
+    keyUrl: "https://aistudio.google.com/app/apikey",
   },
   {
     id: "dahl",
@@ -46,9 +49,9 @@ export const AI_PROVIDER_PRESETS: AiProviderPreset[] = [
   },
   {
     id: "openrouter",
-    label: "OpenRouter (كل النماذج بمفتاح واحد)",
+    label: "OpenRouter (نماذج مجانية ومدفوعة)",
     baseUrl: "https://openrouter.ai/api/v1",
-    modelHint: "openai/gpt-5.5",
+    modelHint: OPENROUTER_FREE_MODEL,
     keyUrl: "https://openrouter.ai/keys",
   },
   {
@@ -66,6 +69,13 @@ export const AI_PROVIDER_PRESETS: AiProviderPreset[] = [
     keyUrl: "https://console.groq.com/keys",
   },
   {
+    id: "cerebras",
+    label: "Cerebras Cloud",
+    baseUrl: "https://api.cerebras.ai/v1",
+    modelHint: "llama-3.3-70b",
+    keyUrl: "https://cloud.cerebras.ai/",
+  },
+  {
     id: "xai",
     label: "xAI (Grok)",
     baseUrl: "https://api.x.ai/v1",
@@ -77,7 +87,7 @@ export const AI_PROVIDER_PRESETS: AiProviderPreset[] = [
     label: "Mistral",
     baseUrl: "https://api.mistral.ai/v1",
     modelHint: "mistral-large-latest",
-    keyUrl: "https://console.mistral.ai/api-keys",
+    keyUrl: "https://console.mistral.ai/api-keys/",
   },
   {
     id: "custom",

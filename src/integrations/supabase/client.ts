@@ -2,17 +2,43 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { brokeredPreviewStorage } from './previewAuthStorage';
+import { getSupabaseAnonKey, getSupabaseUrl } from '@/services/aiTools/envValidation';
 
-const SUPABASE_URL = "https://gpoqacclpjadzbhevgal.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_kNWjXJ_D8FYlZYNSqiB0XA_Iw4TiPUR";
+const SUPABASE_URL = getSupabaseUrl();
+const SUPABASE_PUBLISHABLE_KEY = getSupabaseAnonKey();
+
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  throw new Error(
+    'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.',
+  );
+}
+
+const parsedSupabaseUrl = new URL(SUPABASE_URL);
+const isLocalSupabaseHost = ['localhost', '127.0.0.1', '[::1]'].includes(
+  parsedSupabaseUrl.hostname,
+);
+if (
+  (parsedSupabaseUrl.protocol !== 'https:' && !isLocalSupabaseHost) ||
+  parsedSupabaseUrl.pathname !== '/' ||
+  parsedSupabaseUrl.search ||
+  parsedSupabaseUrl.hash ||
+  parsedSupabaseUrl.username ||
+  parsedSupabaseUrl.password
+) {
+  throw new Error('VITE_SUPABASE_URL must be a Supabase project origin.');
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: brokeredPreviewStorage(),
-    persistSession: true,
-    autoRefreshToken: true,
-  }
-});
+export const supabase = createClient<Database>(
+  parsedSupabaseUrl.origin,
+  SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      storage: brokeredPreviewStorage(),
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  },
+);

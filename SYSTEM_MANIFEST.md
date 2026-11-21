@@ -50,6 +50,8 @@ Product page ✅ → Cart/Checkout ✅ → Admin agent governance (in progress) 
 - Migrated to a new Lovable account: migrations 0000-0015 applied, buckets recreated, email + Google sign-in enabled, OAuth server activated for MCP.
 - Dahl Inference preset + live key configured; GLM and MiniMax verified responding, DeepSeek covered by failover.
 - Migration 0013: `agent_interactions`, `agent_feedback`, `ai_proposals`.
+- Migration 0022 (Wave 2): fractional product stock, Egypt delivery-zone seed, quote tokens, atomic cancellation restock, order/chat attribution, profile preference storage, and order-linked positive exemplars. Existing create_order callers remain supported; checkout sends the optional chat thread id.
+- Wave 2 AI routing: enable existing Nawat cart/reorder and Nebras inventory handlers; recipe-cart automation, budget optimization, perishables, bundles, and automatic preference/exemplar capture still need handler work and source data.
 - Admin governance screen `/admin/governance` (proposal review, agent stats). Work summary kept in `WORK_LOG.md`.
 
 ## Nawat logging
@@ -225,6 +227,16 @@ Required invariants: all stock changes happen server-side, received quantity can
 **الواجهة:** الإدارة ← الإعدادات ← قسم الذكاء ← «خزانة المفاتيح» (`src/components/admin/AiKeyVault.tsx`): لصق جماعي، أولوية، إيقاف/تشغيل، حالة ملوّنة.
 **إعادة البناء في حساب جديد:** طبّق الترحيل 0017، ثم أضف المفاتيح من الواجهة (المفاتيح لا تُنقل في الكود).
 **المزودات الجاهزة:** Dahl `https://inference.dahl.global/v1` (MiniMaxAI/MiniMax-M2.7)، xKiro `https://api.xkiro.com/v1` (cohere/command-a-plus)، Groq (openai/gpt-oss-120b — llama غير متاح للحساب).
+
+### مركز المفاتيح المجانية وشبكة Keyless
+
+- شاشة `/admin/settings` تعرض روابط Google AI Studio وGroq وCerebras وMistral وOpenRouter، ونموذج استيراد `.env` جماعي. الدالة `bulkImportVaultKeys` محمية بالمصادقة وفحص `has_role(admin)`؛ تعيد أعدادًا فقط ولا تعيد أسرارًا. يكتشف المحلل بادئات `AIzaSy`, `gsk_`, `csk-`, `sk-or-v1-` وأسماء متغيرات Mistral.
+- أولوية الاستيراد: Groq = 20، وGemini Flash-Lite وبقية المزودات = 100 (الأصغر أولًا). يمكن تعديل أولوية المفتاح يدويًا. OpenRouter يستخدم sentinel داخليًا يقرأ `/models` ويختار فقط نموذجًا للمحادثة بسعري إدخال وإخراج يساويان صفرًا؛ النماذج `:free` محدودة المعدل، وتُحترم اختيارات النماذج الصريحة التي يحددها المسؤول.
+- `probeVaultKey` يعمل في الخادم فقط. Gemini يفحص قائمة النماذج عبر `x-goog-api-key` دون توليد؛ بقية المزودين يجرون chat completion بحد أقصى توكن واحد. الحالات: نجاح → `active`، 401/403 → `invalid`، 429 → `cooling_down`، و402 → `exhausted` لمدة ساعة. تعطل الشبكة لا يغير الحالة السابقة.
+- التوجيه: طلبات Gemini المباشرة تبدأ بإعداد Gemini ثم مفاتيح Gemini في الخزانة حسب الأولوية؛ إذا نفدت الحصة أو تعطل المسار، تنتقل إلى مجموعات الخزانة المتوافقة مع OpenAI ثم Groq البيئي/الإعداد الحالي. الطلبات غير Gemini تبدأ بمجموعات الخزانة حسب الأولوية ثم Groq البيئي ثم إعدادات المزود. عند غياب مسار مفتاح أو 402/429/عطل مؤقت يُجرّب Kilo. المفتاح المرفوض 401/403 لا يتجاوز بصمت إلى المزود المجهول.
+- مسار Kilo المجهول مأخوذ من `server/src/providers/index.ts` في أرشيف FreeLLMAPI: `https://api.kilo.ai/api/gateway/v1/chat/completions`، بلا `Authorization`، مع قائمة نماذج من `https://api.kilo.ai/api/gateway/models`. يختار التطبيق فقط معرفات النماذج التي تنتهي بـ `:free` ويخزن القائمة مؤقتًا خمس دقائق. لا تُستخدم أسماء نموذج قديمة ثابتة.
+- لا يوجد ضمان لتوافر Kilo أو حصته؛ السياسات والاحتفاظ بالطلبات لدى المزود تنطبق على البيانات التي يرسلها التطبيق. تُظهر لوحة الإدارة هذه المعلومة. لا يُستخدم LLM7 كـ Keyless: [دليل LLM7 الحالي](https://docs.llm7.io/quickstart) يتطلب API token، وخدمة الموقع تصف الاستخدام بالدفع حسب الاستخدام.
+- لا يتطلب هذا الدمج جدولًا أو عمودًا جديدًا؛ لا تُعدّل `drizzle/migrations` أو `supabase/migrations` يدويًا.
 
 ## Intent Router (AI tool routing)
 src/services/aiTools/intentRouter.ts maps every message to ≤2 clusters / ≤5 tools out of the 19-tool constitution. To add a tool: implement it in AI_TOOL_SUITE, add its name to the cluster's `tools`, set status to live. No DB tables involved.

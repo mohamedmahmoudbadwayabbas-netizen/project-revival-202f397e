@@ -52,6 +52,33 @@ export const addVaultKeys = createServerFn({ method: "POST" })
     return { added: inserted?.length ?? 0, total: keys.length };
   });
 
+export const bulkImportVaultKeys = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ text: z.string().trim().min(1).max(200000) }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const [{ parseBulkVaultKeyImport, defaultVaultPriority }, { findPreset }] = await Promise.all([
+      import("@/lib/ai-provider.server"),
+      import("@/lib/ai-providers"),
+    ]);
+    const { rows, ignored } = parseBulkVaultKeyImport(data.text);
+    if (!rows.length) throw new Error("لم أجد مفاتيح معروفة في النص المرسل.");
+    if (rows.length > 500) throw new Error("الحد الأقصى للاستيراد في المرة الواحدة 500 مفتاح.");
+    const payload = rows.map(({ provider, api_key }) => ({
+      provider,
+      api_key,
+      model: findPreset(provider)?.modelHint || null,
+      base_url: findPreset(provider)?.baseUrl || null,
+      priority: defaultVaultPriority(provider),
+    }));
+    const { error, data: inserted } = await (await db())
+      .from("ai_key_vault")
+      .upsert(payload, { onConflict: "provider,api_key", ignoreDuplicates: true })
+      .select("id");
+    if (error) throw new Error("تعذر حفظ المفاتيح المستوردة.");
+    return { added: inserted?.length ?? 0, total: rows.length, ignored };
+  });
+
 export const updateVaultKey = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
@@ -75,33 +102,24 @@ export const checkVaultKeys = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertAdmin(context);
-    const { listVaultKeys, markVaultKey } = await import("@/lib/ai-key-vault.server");
-    const { findPreset } = await import("@/lib/ai-providers");
+    const { listVaultKeys, probeVaultKey } = await import("@/lib/ai-key-vault.server");
     const keys = (await listVaultKeys()).filter((k) => k.status !== "disabled");
     let ok = 0;
-    await Promise.all(
-      keys.map(async (k) => {
-        const base = (k.base_url || findPreset(k.provider)?.baseUrl || "").replace(/\/+$/, "");
-        const model = k.model || findPreset(k.provider)?.modelHint;
-        if (!base || !model) return;
-        try {
-          const r = await fetch(`${base}/chat/completions`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${k.api_key}` },
-            body: JSON.stringify({ model, messages: [{ role: "user", content: "OK" }], max_tokens: 5 }),
-            signal: AbortSignal.timeout(20000),
-          });
-          await r.text();
-          if (r.ok) { ok++; await markVaultKey(k.api_key, { status: "active", cooldown_until: null, last_error: null }); }
-          else await markVaultKey(k.api_key, {
-            status: r.status === 401 || r.status === 403 ? "invalid" : r.status === 402 ? "exhausted" : r.status === 429 ? "cooling_down" : "active",
-            cooldown_until: r.status === 429 ? new Date(Date.now() + 60000).toISOString() : null,
-            last_error: String(r.status),
-          });
-        } catch {
-          await markVaultKey(k.api_key, { last_error: "network" });
-        }
-      }),
-    );
+    for (let i = 0; i < keys.length; i += 8) {
+      const results = await Promise.all(keys.slice(i, i + 8).map(probeVaultKey));
+      ok += results.filter((result) => result === "healthy").length;
+    }
     return { ok, total: keys.length };
+  });
+
+export const checkVaultKey = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { listVaultKeys, probeVaultKey } = await import("@/lib/ai-key-vault.server");
+    const key = (await listVaultKeys()).find((item) => item.id === data.id);
+    if (!key) throw new Error("المفتاح غير موجود في الخزانة.");
+    const status = await probeVaultKey(key);
+    return { status };
   });

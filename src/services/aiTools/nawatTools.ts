@@ -440,16 +440,15 @@ export async function smartCartManager(params: {
 
 /**
  * 3. orderTracker
- * Tracks orders from `orders` by `userId`, `phone`, `orderId`, or `trackingToken`.
+ * Tracks orders from `orders` by authenticated `userId` or `trackingToken`.
  */
 export async function orderTracker(params: {
   action: 'list_my_orders' | 'track_latest' | 'order_details';
   userId?: string;
-  phone?: string;
   orderId?: string;
   trackingToken?: string;
 }): Promise<NawatToolResult> {
-  const { action, userId, phone, orderId, trackingToken } = params;
+  const { action, userId, orderId, trackingToken } = params;
 
   const STATUS_AR: Record<string, string> = {
     pending: 'قيد المراجعة',
@@ -469,20 +468,21 @@ export async function orderTracker(params: {
       )
       .order('created_at', { ascending: false });
 
-    if (action === 'order_details' && (orderId || trackingToken)) {
-      if (orderId) query = query.eq('id', orderId);
-      else if (trackingToken) query = query.eq('tracking_token', trackingToken);
-    } else if (userId) {
+    if (userId) {
       query = query.eq('user_id', userId);
-    } else if (phone && phone.trim()) {
-      query = query.eq('phone', phone.trim());
+      if (action === 'order_details' && orderId) query = query.eq('id', orderId);
+      if (action === 'order_details' && trackingToken?.trim()) {
+        query = query.eq('tracking_token', trackingToken.trim());
+      }
+    } else if (trackingToken?.trim()) {
+      query = query.eq('tracking_token', trackingToken.trim());
     } else {
       return {
         ok: false,
         tool: 'orderTracker',
         action,
         mode: 'error',
-        summaryAr: 'يرجى تزويدي برقم الهاتف أو رقم تتبع الطلب للبحث عن طلبك.',
+        summaryAr: 'يرجى تسجيل الدخول أو تزويدي برمز تتبع الطلب للبحث عنه.',
       };
     }
 
@@ -521,6 +521,7 @@ export async function orderTracker(params: {
 
     const enriched = orders.map((o) => ({
       ...o,
+      ...(userId ? {} : { customer_name: 'مخفي', phone: 'مخفي', address: 'مخفي' }),
       statusAr: STATUS_AR[o.status ?? ''] ?? o.status,
     }));
 
@@ -843,18 +844,17 @@ export async function deliveryZoneChecker(params: {
 export async function reorderAssistant(params: {
   action: 'buy_again_list' | 'repeat_last_order';
   userId?: string;
-  phone?: string;
 }): Promise<NawatToolResult> {
-  const { action, userId, phone } = params;
+  const { action, userId } = params;
 
   try {
-    if (!userId && !phone) {
+    if (!userId) {
       return {
         ok: false,
         tool: 'reorderAssistant',
         action,
         mode: 'error',
-        summaryAr: 'يرجى تسجيل الدخول أو إدخال رقم هاتفك لعرض مشترياتك السابقة.',
+        summaryAr: 'يرجى تسجيل الدخول لعرض مشترياتك السابقة وإعادة الطلب.',
       };
     }
 
@@ -865,8 +865,7 @@ export async function reorderAssistant(params: {
       .order('created_at', { ascending: false })
       .limit(5);
 
-    if (userId) orderQuery = orderQuery.eq('user_id', userId);
-    else if (phone) orderQuery = orderQuery.eq('phone', phone.trim());
+    orderQuery = orderQuery.eq('user_id', userId);
 
     const { data: pastOrders, error } = await orderQuery;
     if (error) throw error;

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Bot, CheckCircle2, ExternalLink, Eye, EyeOff, Loader2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AI_PROVIDER_PRESETS, findPreset } from "@/lib/ai-providers";
+import { AI_PROVIDER_PRESETS, findPreset, OPENROUTER_FREE_MODEL } from "@/lib/ai-providers";
 import { getAiSettings, testAiConnection, updateAiSettings } from "@/lib/ai-settings.functions";
 
 export function AiProviderSettings() {
@@ -39,7 +39,9 @@ export function AiProviderSettings() {
     setBusy(andTest ? "test" : "save");
     setResult(null);
     try {
-      await save({ data: { provider, apiKey, baseUrl, model } });
+      const selectedModel = model.trim() || (provider === "openrouter" ? OPENROUTER_FREE_MODEL : "");
+      await save({ data: { provider, apiKey, baseUrl, model: selectedModel } });
+      setModel(selectedModel);
       if (apiKey) setHasKey(true);
       setApiKey("");
       if (andTest) {
@@ -130,9 +132,9 @@ export function AiProviderSettings() {
           <label className="space-y-1.5">
             <span className="text-sm font-medium">٣. اسم النموذج (اختياري)</span>
             <Input
-              value={model}
+              value={model === OPENROUTER_FREE_MODEL ? "" : model}
               onChange={(e) => setModel(e.target.value)}
-              placeholder={`مثال: ${preset?.modelHint ?? ""}`}
+              placeholder={`مثال: ${provider === "openrouter" ? "اختيار تلقائي لنموذج مجاني" : preset?.modelHint ?? ""}`}
               dir="ltr"
             />
           </label>

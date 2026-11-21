@@ -572,6 +572,15 @@ export function NawatChat({ threadId }: { threadId?: string }) {
     textareaRef.current?.focus();
   }, [threadId, loaded]);
 
+  useEffect(() => {
+    if (!threadId) return;
+    try {
+      localStorage.setItem("nawat:attributed_session_id", threadId);
+    } catch {
+      // Attribution is optional; chat remains usable when browser storage is disabled.
+    }
+  }, [threadId]);
+
   const send = async (raw: string) => {
     const text = raw.trim().slice(0, 2000);
     if (!text || busy) return;

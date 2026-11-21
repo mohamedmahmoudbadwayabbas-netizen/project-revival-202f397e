@@ -480,9 +480,29 @@ function CartPage() {
         p_ref_source: ref,
       };
 
+      const attributedSessionId = (() => {
+        try {
+          const value = localStorage.getItem("nawat:attributed_session_id");
+          return value && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+            ? value
+            : null;
+        } catch {
+          return null;
+        }
+      })();
+      const { data: quoteData, error: quoteError } = await supabase.rpc("calculate_order_quote", {
+        p_items: baseArgs.p_items,
+        p_coupon_code: baseArgs.p_coupon_code,
+        p_delivery_zone_id: baseArgs.p_delivery_zone_id,
+      } as any);
+      if (quoteError || !quoteData || typeof quoteData !== "object" || !("token" in quoteData)) {
+        throw new Error(quoteError?.message || "تعذر تأكيد السعر النهائي من الخادم.");
+      }
       const { data: rpcData, error: rpcError } = await supabase.rpc("create_order", {
         ...baseArgs,
         p_idempotency_key: attemptKey,
+        p_attributed_session_id: attributedSessionId,
+        p_quote_token: String((quoteData as { token: string }).token),
       } as any);
 
       if (rpcError) {

@@ -246,9 +246,9 @@ export const TOOL_CLUSTERS_REGISTRY: ToolClusterMetadata[] = [
   {
     name: 'inventoryManager',
     agent: 'nebras',
-    status: 'partial',
+    status: 'live',
     risk: 'HIGH_WRITE',
-    keywordsAr: ['مخزون', 'نواقص', 'خلص', 'نفد', 'رصيد', 'جرد', 'كمية', 'تحويل', 'فرع', 'ستوك'],
+    keywordsAr: ['مخزون', 'نواقص', 'خلص', 'نفد', 'رصيد', 'جرد', 'كمية', 'تحويل', 'فرع', 'ستوك', 'تسوية', 'هالك'],
     descriptionAr: 'فحص نواقص المخزون وتعديل الأرصدة ومحاكاة التحويلات',
   },
   {
@@ -288,7 +288,7 @@ export const TOOL_CLUSTERS_REGISTRY: ToolClusterMetadata[] = [
     agent: 'nebras',
     status: 'live',
     risk: 'READ_ONLY',
-    keywordsAr: ['تقرير', 'مبيعات', 'ايرادات', 'ارباح', 'اكثر مبيعا', 'راكد', 'تحليل', 'احصائيات', 'اداء', 'فلوس'],
+    keywordsAr: ['تقرير', 'مبيعات', 'ايرادات', 'ارباح', 'اكثر مبيعا', 'راكد', 'تحليل', 'احصائيات', 'اداء', 'فلوس', 'مخزون راكد'],
     descriptionAr: 'تقارير الإيرادات والأكثر مبيعاً والمخزون الراكد',
   },
   {

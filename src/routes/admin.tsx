@@ -36,7 +36,13 @@ export function AdminLayout() {
   const isLoginRoute = pathname === "/admin/login";
   const { isAdmin, loading } = useAuth();
 
-  if (false && !loading && !isAdmin && !isLoginRoute) {
+  useEffect(() => {
+    if (!loading && !isAdmin && !isLoginRoute) {
+      void router.navigate({ to: "/admin/login", replace: true });
+    }
+  }, [isAdmin, isLoginRoute, loading, router]);
+
+  if (loading || (!isAdmin && !isLoginRoute)) {
     return null;
   }
 

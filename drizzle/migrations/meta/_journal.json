@@ -148,6 +148,20 @@
       "when": 1794609668765,
       "tag": "0020_agent_signal_columns",
       "breakpoints": true
+    },
+    {
+      "breakpoints": true,
+      "version": "7",
+      "idx": 21.0,
+      "when": 1794990933608,
+      "tag": "0021_live_production_baseline"
+    },
+    {
+      "breakpoints": true,
+      "version": "7",
+      "idx": 22,
+      "when": 1795080000000,
+      "tag": "0022_wave2_commerce_ai"
     }
   ]
 }

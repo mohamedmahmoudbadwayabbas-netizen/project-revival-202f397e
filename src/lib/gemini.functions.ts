@@ -50,6 +50,37 @@ const MODERATOR_GROUPS = new Set([
   "marketing",
   "universal",
 ]);
+const GEMINI_RATE_LIMIT_WINDOW_MS = 60_000;
+const GEMINI_RATE_LIMITS = { privileged: 30, regular: 10 } as const;
+const geminiRequestTimestamps = new Map<string, number[]>();
+let lastGeminiRateLimitCleanup = 0;
+
+function enforceGeminiRateLimit(userId: string, isPrivileged: boolean): void {
+  const now = Date.now();
+  if (now - lastGeminiRateLimitCleanup >= GEMINI_RATE_LIMIT_WINDOW_MS) {
+    for (const [trackedUserId, timestamps] of geminiRequestTimestamps) {
+      const recentTimestamps = timestamps.filter(
+        (timestamp) => now - timestamp < GEMINI_RATE_LIMIT_WINDOW_MS,
+      );
+      if (recentTimestamps.length) geminiRequestTimestamps.set(trackedUserId, recentTimestamps);
+      else geminiRequestTimestamps.delete(trackedUserId);
+    }
+    lastGeminiRateLimitCleanup = now;
+  }
+
+  const recentRequests = (geminiRequestTimestamps.get(userId) ?? []).filter(
+    (timestamp) => now - timestamp < GEMINI_RATE_LIMIT_WINDOW_MS,
+  );
+  const limit = isPrivileged ? GEMINI_RATE_LIMITS.privileged : GEMINI_RATE_LIMITS.regular;
+
+  if (recentRequests.length >= limit) {
+    geminiRequestTimestamps.set(userId, recentRequests);
+    throw new Error("تم تجاوز الحد المسموح لطلبات الذكاء الاصطناعي. يرجى المحاولة بعد دقيقة.");
+  }
+
+  recentRequests.push(now);
+  geminiRequestTimestamps.set(userId, recentRequests);
+}
 
 function getRequestedTools(config: Record<string, unknown> | undefined): string[] {
   const tools = Array.isArray(config?.tools) ? config.tools : [];
@@ -94,8 +125,9 @@ function assertValidRequest(data: GeminiRequest): GeminiRequest {
   if (!data.contents || (!Array.isArray(data.contents) && typeof data.contents !== "string"))
     throw new Error("Gemini contents are required.");
   const serialized = JSON.stringify({ contents: data.contents, config: data.config ?? {} });
-  const maxBytes = data.purpose === "image" ? 8_000_000 : data.purpose === "maps" ? 8_000 : 64_000;
-  if (serialized.length > maxBytes) throw new Error("Gemini request is too large.");
+  const maxBytes = data.purpose === "image" ? 8_000_000 : data.purpose === "maps" ? 8_000 : 16_000;
+  if (new TextEncoder().encode(serialized).byteLength > maxBytes)
+    throw new Error("Gemini request is too large.");
   return data;
 }
 
@@ -133,6 +165,7 @@ export const generateGeminiContent = createServerFn({ method: "POST" })
     const role = String(roleValue ?? "").toLowerCase();
     const isAdmin = ADMIN_ROLES.has(role);
     const isModerator = role === "moderator";
+    enforceGeminiRateLimit(context.userId, isAdmin || isModerator);
 
     if (data.purpose === "analysis" && !isAdmin)
       throw new Error("Deep analysis is available to store admins only.");
@@ -192,18 +225,44 @@ export const generateGeminiContent = createServerFn({ method: "POST" })
       classifyProviderError,
       recordAiAlert,
       ProviderError,
+      shouldFallbackToKeyless,
+      splitKeys,
     } = await import("@/lib/ai-provider.server");
     const settings = await loadAiSettings();
     const provider = settings?.provider || "gemini";
-
-    // أي مزود غير Gemini يُستدعى عبر المعيار الموحد المتوافق مع OpenAI.
     const vaultMod = await import("@/lib/ai-key-vault.server");
-    const groqAvailable =
-      !!process.env.GROQ_API_KEY || vaultMod.usableKeys(await vaultMod.listVaultKeys()).length > 0;
-    if (data.purpose === "chat" && ((provider !== "gemini" && settings) || groqAvailable)) {
+    const vaultKeys = vaultMod.usableKeys(await vaultMod.listVaultKeys());
+    const vaultGeminiKeys = vaultKeys
+      .filter((k) => String(k.provider).toLowerCase() === "gemini")
+      .filter((k) => Boolean(k.api_key));
+    const savedModel = provider === "gemini" ? settings?.model?.trim() || "" : "";
+    const chatModelOverride = savedModel || process.env["GEMINI_CHAT_MODEL"]?.trim() || "";
+    const selectedChatModel =
+      data.purpose === "chat" && chatModelOverride && data.model !== DEEP_ANALYSIS_MODEL
+        ? chatModelOverride
+        : data.model;
+    const googleCredentials = new Map<string, string>();
+    if (provider === "gemini") {
+      for (const apiKey of splitKeys(settings?.api_key)) googleCredentials.set(apiKey, selectedChatModel);
+      for (const row of vaultGeminiKeys) {
+        if (!googleCredentials.has(row.api_key))
+          googleCredentials.set(
+            row.api_key,
+            data.purpose === "chat" && data.model !== DEEP_ANALYSIS_MODEL
+              ? row.model || selectedChatModel
+              : data.model,
+          );
+      }
+      for (const apiKey of splitKeys(process.env["GEMINI_API_KEY"])) {
+        if (!googleCredentials.has(apiKey)) googleCredentials.set(apiKey, selectedChatModel);
+      }
+    }
+
+    // أي مزود غير Gemini يُستدعى عبر المعيار الموحد؛ Gemini يستخدم مفاتيحه النشطة أولاً.
+    if (data.purpose === "chat" && ((provider !== "gemini" && settings) || (provider === "gemini" && !googleCredentials.size))) {
       try {
         const res = await callOpenAICompatible(
-          settings ?? { provider: "groq", api_key: null, base_url: null, model: null },
+          settings ?? { provider: "gemini", api_key: null, base_url: null, model: null },
           data.contents,
           { ...(data.config ?? {}), chatModel: "openai/gpt-oss-120b" },
         );
@@ -222,21 +281,7 @@ export const generateGeminiContent = createServerFn({ method: "POST" })
       }
     }
 
-    const { splitKeys } = await import("@/lib/ai-provider.server");
-    const savedKeys = provider === "gemini" ? splitKeys(settings?.api_key) : [];
-    // مفاتيح Gemini المحفوظة في الخزانة (ai_key_vault) بترتيب الأولوية، ثم متغير البيئة كاحتياطي.
-    const vaultGeminiKeys = vaultMod
-      .usableKeys(await vaultMod.listVaultKeys())
-      .filter((k) => String(k.provider).toLowerCase() === "gemini")
-      .map((k) => k.api_key)
-      .filter(Boolean);
-    const keys = [
-      ...new Set([
-        ...savedKeys,
-        ...vaultGeminiKeys,
-        ...splitKeys(process.env["GEMINI_API_KEY"]),
-      ]),
-    ];
+    const keys = [...googleCredentials.entries()].map(([apiKey, model]) => ({ apiKey, model }));
     if (!keys.length)
       throw new Error(
         "لم يتم وضع مفتاح الذكاء الاصطناعي بعد. يمكن للمسؤول إضافته من الإعدادات ← الذكاء الاصطناعي.",
@@ -250,24 +295,21 @@ export const generateGeminiContent = createServerFn({ method: "POST" })
           ? Math.min(requestedMax, maxOutputTokens)
           : maxOutputTokens;
     }
-    const savedModel = provider === "gemini" ? settings?.model?.trim() : "";
-    const chatModelOverride = savedModel || process.env["GEMINI_CHAT_MODEL"]?.trim();
-    const model =
-      data.purpose === "chat" && chatModelOverride && data.model !== DEEP_ANALYSIS_MODEL ? chatModelOverride : data.model;
     let response: Awaited<ReturnType<GoogleGenAI["models"]["generateContent"]>> | undefined;
     let lastError: unknown;
-    const chain =
-      data.purpose === "image"
-        ? [model, model]
-        : data.purpose === "analysis"
-          ? [...new Set([model, ...ANALYSIS_FALLBACK_MODELS])]
-          : [...new Set([model, "gemini-3.1-flash-lite"])];
     // تدوير المفاتيح: إذا نفدت حصة مفتاح أو كان غير صالح ننتقل للمفتاح التالي تلقائيًا.
     keyLoop: for (let k = 0; k < keys.length; k++) {
       const ai = new GoogleGenAI({
-        apiKey: keys[k],
+        apiKey: keys[k].apiKey,
         httpOptions: { timeout: 45000, retryOptions: { attempts: 1 } },
       });
+      const keyModel = data.purpose === "chat" ? keys[k].model : data.model;
+      const chain =
+        data.purpose === "image"
+          ? [keyModel, keyModel]
+          : data.purpose === "analysis"
+            ? [...new Set([keyModel, ...ANALYSIS_FALLBACK_MODELS])]
+            : [...new Set([keyModel, "gemini-3.1-flash-lite"])];
       for (let attempt = 0; attempt < chain.length; attempt++) {
         try {
           response = await ai.models.generateContent({
@@ -305,10 +347,22 @@ export const generateGeminiContent = createServerFn({ method: "POST" })
     }
     if (!response) {
       const msg = String((lastError as Error)?.message ?? lastError);
-      if (classifyProviderError(null, msg) === "quota") {
-        await recordAiAlert("quota", "gemini");
+      const kind = classifyProviderError(null, msg);
+      if (kind === "quota") await recordAiAlert("quota", "gemini");
+      const status = typeof (lastError as { status?: unknown } | null)?.status === "number"
+        ? (lastError as { status: number }).status
+        : null;
+      if (data.purpose === "chat" && shouldFallbackToKeyless(status, msg)) {
+        const fallback = await callOpenAICompatible(
+          settings ?? { provider: "gemini", api_key: null, base_url: null, model: null },
+          data.contents,
+          { ...config, forceKeylessFallback: true },
+        );
+        return JSON.parse(JSON.stringify(fallback)) as GeminiClientResponse;
+      }
+      if (kind === "quota") {
         throw new Error(
-          "429 RESOURCE_EXHAUSTED: نفدت حصة مفتاح الذكاء الاصطناعي. تم تنبيه مسؤول المتجر.",
+          "429 RESOURCE_EXHAUSTED: نفدت حصة مفاتيح الذكاء الاصطناعي ولم يتوفر البديل. تم تنبيه مسؤول المتجر.",
           { cause: lastError },
         );
       }

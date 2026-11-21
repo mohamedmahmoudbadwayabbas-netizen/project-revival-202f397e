@@ -602,10 +602,11 @@ function ProductsPage({ onGenerateCookingTip }: ProductsPageProps = {}) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="space-y-6 p-4 sm:p-6"
+      className="admin-lux admin-products mx-auto max-w-[1440px] space-y-6 p-4 sm:p-6"
+      dir="rtl"
     >
       {/* رأس الصفحة والملاحظات الإحصائية */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm transition-all duration-200 hover:shadow-md sm:p-6">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="font-display text-2xl font-black text-foreground">
@@ -632,52 +633,56 @@ function ProductsPage({ onGenerateCookingTip }: ProductsPageProps = {}) {
       </div>
 
       {/* بطاقات الإحصاءات السريعة للمخزون */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl bg-card border border-border/60 p-3.5 flex items-center justify-between shadow-xs">
+      <div className="admin-dashboard__kpis grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-5">
           <div>
-            <div className="text-[11px] font-bold text-muted-foreground">إجمالي المنتجات</div>
-            <div className="text-xl font-black text-foreground mt-0.5">{stats.total}</div>
+            <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">الكتالوج</span>
+            <div className="mt-2 text-xs font-bold text-slate-500">إجمالي المنتجات</div>
+            <div className="mt-0.5 text-2xl font-black text-slate-900">{stats.total}</div>
           </div>
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary">
+          <div className="mt-3 grid h-10 w-10 place-items-center rounded-xl bg-emerald-50 text-emerald-700">
             <Package className="h-5 w-5" />
           </div>
         </div>
 
-        <div className="rounded-2xl bg-card border border-border/60 p-3.5 flex items-center justify-between shadow-xs">
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-5">
           <div>
-            <div className="text-[11px] font-bold text-muted-foreground">الأكثر مبيعاً</div>
-            <div className="text-xl font-black text-amber-500 mt-0.5">{stats.featured}</div>
+            <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">مميز</span>
+            <div className="mt-2 text-xs font-bold text-slate-500">الأكثر مبيعاً</div>
+            <div className="mt-0.5 text-2xl font-black text-slate-900">{stats.featured}</div>
           </div>
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/10 text-amber-500">
+          <div className="mt-3 grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-700">
             <Star className="h-5 w-5 fill-amber-500/20" />
           </div>
         </div>
 
-        <div className="rounded-2xl bg-card border border-border/60 p-3.5 flex items-center justify-between shadow-xs">
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-5">
           <div>
-            <div className="text-[11px] font-bold text-muted-foreground">مخزون منخفض</div>
-            <div className="text-xl font-black text-amber-600 dark:text-amber-400 mt-0.5">
+            <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">تنبيه</span>
+            <div className="mt-2 text-xs font-bold text-slate-500">مخزون منخفض</div>
+            <div className="mt-0.5 text-2xl font-black text-slate-900">
               {stats.low}
             </div>
           </div>
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/10 text-amber-600">
+          <div className="mt-3 grid h-10 w-10 place-items-center rounded-xl bg-amber-50 text-amber-700">
             <AlertTriangle className="h-5 w-5" />
           </div>
         </div>
 
-        <div className="rounded-2xl bg-card border border-border/60 p-3.5 flex items-center justify-between shadow-xs">
+        <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md sm:p-5">
           <div>
-            <div className="text-[11px] font-bold text-muted-foreground">نفد من المخزون</div>
-            <div className="text-xl font-black text-rose-600 mt-0.5">{stats.out}</div>
+            <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">متاح الآن</span>
+            <div className="mt-2 text-xs font-bold text-slate-500">نفد من المخزون</div>
+            <div className="mt-0.5 text-2xl font-black text-slate-900">{stats.out}</div>
           </div>
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-rose-500/10 text-rose-600">
+          <div className="mt-3 grid h-10 w-10 place-items-center rounded-xl bg-rose-50 text-rose-600">
             <X className="h-5 w-5" />
           </div>
         </div>
       </div>
 
       {/* شريط البحث والفلترة المتقدم */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-card/60 p-3 rounded-2xl border border-border shadow-xs">
+      <div className="flex flex-col items-stretch gap-3 rounded-3xl border border-slate-200 bg-slate-50/50 p-3 shadow-sm sm:flex-row sm:items-center">
         {/* بحث بالاسم والوصف */}
         <div className="relative flex-1">
           <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -685,7 +690,7 @@ function ProductsPage({ onGenerateCookingTip }: ProductsPageProps = {}) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="ابحث باسم المنتج أو الكلمات المفتاحية..."
-            className="ps-9 pe-9 h-10 rounded-xl text-xs font-bold bg-background/80"
+            className="h-10 rounded-full border-slate-200 bg-white ps-9 pe-9 text-xs font-bold"
           />
           {searchQuery && (
             <button
@@ -700,7 +705,7 @@ function ProductsPage({ onGenerateCookingTip }: ProductsPageProps = {}) {
         {/* فلترة القسم */}
         <div className="w-full sm:w-48">
           <Select value={selectedCat} onValueChange={setSelectedCat}>
-            <SelectTrigger className="h-10 rounded-xl text-xs font-bold bg-background/80">
+            <SelectTrigger className="h-10 rounded-full border-slate-200 bg-white text-xs font-bold">
               <SelectValue placeholder="جميع الأقسام" />
             </SelectTrigger>
             <SelectContent>
@@ -719,7 +724,7 @@ function ProductsPage({ onGenerateCookingTip }: ProductsPageProps = {}) {
         {/* فلترة حالة المخزون */}
         <div className="w-full sm:w-40">
           <Select value={stockFilter} onValueChange={setStockFilter}>
-            <SelectTrigger className="h-10 rounded-xl text-xs font-bold bg-background/80">
+            <SelectTrigger className="h-10 rounded-full border-slate-200 bg-white text-xs font-bold">
               <SelectValue placeholder="حالة المخزون" />
             </SelectTrigger>
             <SelectContent>
@@ -748,7 +753,7 @@ function ProductsPage({ onGenerateCookingTip }: ProductsPageProps = {}) {
           size="icon"
           onClick={load}
           title="تحديث البيانات"
-          className="h-10 w-10 rounded-xl shrink-0 border-border bg-background"
+          className="h-10 w-10 shrink-0 rounded-full border-slate-200 bg-white"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin text-primary" : ""}`} />
         </Button>
@@ -758,7 +763,7 @@ function ProductsPage({ onGenerateCookingTip }: ProductsPageProps = {}) {
       {loading ? (
         <TableSkeleton />
       ) : (
-        <div className="overflow-x-auto rounded-3xl border border-border bg-card shadow-sm">
+        <div className="overflow-x-auto rounded-3xl border border-slate-100 bg-white shadow-sm transition-all duration-200 hover:shadow-md">
           <table className="min-w-full text-sm">
             <thead className="bg-secondary/60 text-xs font-extrabold text-muted-foreground border-b border-border">
               <tr>

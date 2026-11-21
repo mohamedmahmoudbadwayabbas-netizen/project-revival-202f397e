@@ -81,3 +81,44 @@ Full details and pre-solved blockers: IMPORT_PROTOCOL.md section 6.
 - [x] Intent Router + Tool Cluster Router
 - [ ] أدوات نواة: manageCart, smartReorder, smartListManager, deliveryAndTracking, walletAndLoyalty
 - [ ] أدوات نبراس: supplierManager, customerManager, inventoryManager كامل, fulfillmentManager (سائقين/تجهيز), mediaManager بـ gemini-3.1-flash-image
+
+
+## Wave 1 progress
+
+- [x] Make the browser Supabase client use deployment environment variables and fail closed on invalid configuration.
+- [ ] Reconcile live schema and migration history; repair the database-backed Wave 1 findings with forward-only changes.
+- Validation pending: npm registry TLS failure prevented dependency installation, so build/tests could not run.
+
+
+- [x] Add forward-only source baseline for the six live tables, policies, indexes, and grants.
+- [ ] Reconcile the live store_settings_public projection without changing existing column compatibility.
+- [ ] Complete Wave 1 order, inventory, driver, and governance fixes; validate against a disposable database.
+
+- [x] Expand the source-created settings view from 30 to 34 columns without reordering existing columns; live 34-column view is unchanged.
+
+## Wave 2 progress
+
+- [x] Add forward-only migration for fractional stock, Egypt delivery zones, quote tokens, atomic cancellation restock, attribution, AI preferences storage, and positive-order exemplars.
+- [x] Wire checkout to server quote validation and attribute checkout to the current Nawat thread.
+- [x] Enable existing cart, reorder, inventory adjustment, and dead-stock routes.
+- [ ] Implement recipe/budget cart optimization, perishables and bundle recommendations, and automatic preference/exemplar capture.
+- [ ] Apply Wave 2 migration to a verified live database and reconcile its resulting schema.
+
+## Security hardening — 2026-11-20
+
+- [x] Protect admin routes with redirect-to-login and loading/unauthorized guards.
+- [x] Restrict order lookup to user ID or tracking token; mask guest-visible customer details and require authentication for reorder.
+- [x] Limit non-image/non-maps Gemini request bodies to 16 KB and add per-user in-memory sliding-window request limits.
+- [ ] Run build and focused checks when validation is requested; rate limits are per server process and are not shared across instances.
+
+## Phase — مركز المفاتيح المجانية وشبكة Keyless (2026-11-21)
+
+- [x] إضافة دليل مزودي المفاتيح المجانية وروابط لوحاتهم، مع Cerebras وGemini وGroq وMistral وOpenRouter.
+- [x] إضافة استيراد `.env` جماعي مع استنتاج المزود، ترتيب افتراضي للمفاتيح، منع التكرار، وعدم إرجاع أي سر للمتصفح.
+- [x] إضافة فحص صحة فردي وجماعي للمفاتيح وتحديث الحالة بما يتفق مع قيم الجدول الحالية، من خلال دوال خادم محمية للمسؤول.
+- [x] تفعيل محول Kilo المجهول لمسارات `:free` بعد فشل/غياب مسارات المفاتيح، وتمريره عبر محول Gemini/OpenAI حتى تبقى استدعاءات الأدوات متوافقة.
+- [x] استخدام ترتيب الخزانة للأولوية، ثم المفاتيح المجانية، ثم Kilo؛ وتوثيق القيود والخصوصية وعدم ضمان توافر مزود خارجي.
+- [x] تحديث `WORK_LOG.md` و`SYSTEM_MANIFEST.md`.
+- [ ] تشغيل `npm test` بعد تثبيت الاعتماديات.
+- ملاحظة تحقق: أرشيف FreeLLMAPI يثبت مسار Kilo المجهول؛ وثائق LLM7 الرسمية تتطلب رمز API وتصف استخدامًا مدفوعًا، لذلك لا يُعامل كـ Keyless.
+- الحالة الحالية: التنفيذ 95%؛ اختبارات الحزمة متبقية لأن `vitest` غير مثبت، وطلب تنزيل الاعتماديات ينتظر موافقة المستخدم.

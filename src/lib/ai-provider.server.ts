@@ -1,4 +1,4 @@
-import { findPreset } from "@/lib/ai-providers";
+import { findPreset, OPENROUTER_FREE_MODEL } from "@/lib/ai-providers";
 
 export type AiSettings = {
   provider: string;
@@ -30,6 +30,61 @@ export function splitKeys(raw: string | null | undefined): string[] {
         .filter(Boolean),
     ),
   ];
+}
+
+export type BulkVaultKey = { provider: string; api_key: string };
+
+/** يقرأ أسطر المفاتيح أو متغيرات .env المعروفة دون إعادة الأسرار للمتصفح. */
+export function parseBulkVaultKeyImport(raw: string): { rows: BulkVaultKey[]; ignored: number } {
+  const byName: Array<[RegExp, string]> = [
+    [/^(?:GEMINI|GOOGLE|GOOGLE_GENERATIVE_AI)_API_KEY(?:_\d+)?$/i, "gemini"],
+    [/^GROQ_API_KEY(?:_\d+)?$/i, "groq"],
+    [/^CEREBRAS_API_KEY(?:_\d+)?$/i, "cerebras"],
+    [/^OPENROUTER_API_KEY(?:_\d+)?$/i, "openrouter"],
+    [/^MISTRAL_API_KEY(?:_\d+)?$/i, "mistral"],
+  ];
+  const rows = new Map<string, BulkVaultKey>();
+  let ignored = 0;
+  for (const original of raw.split(/\r?\n/)) {
+    let line = original.trim();
+    if (!line || line.startsWith("#")) continue;
+    let envName = "";
+    const assignment = /^(?:export\s+)?([A-Z0-9_]+)\s*=\s*(.*)$/i.exec(line);
+    if (assignment) {
+      envName = assignment[1].toUpperCase();
+      line = assignment[2].trim();
+      if (line.startsWith('"') || line.startsWith("'")) {
+        const quote = line[0];
+        const closingQuote = line.indexOf(quote, 1);
+        line = line.slice(1, closingQuote > 0 ? closingQuote : undefined);
+      } else {
+        line = line.replace(/\s+#.*$/, "").trim();
+      }
+    } else {
+      line = line.replace(/\s+#.*$/, "").trim();
+    }
+    const namedProvider = byName.find(([pattern]) => pattern.test(envName))?.[1];
+    const values = splitKeys(line);
+    let matched = 0;
+    for (const api_key of values) {
+      const provider =
+        /^AIzaSy/i.test(api_key) ? "gemini" :
+        /^gsk_/i.test(api_key) ? "groq" :
+        /^csk-/i.test(api_key) ? "cerebras" :
+        /^sk-or-v1-/i.test(api_key) ? "openrouter" :
+        namedProvider;
+      if (!provider || api_key.length < 8 || api_key.length > 2000) continue;
+      const id = `${provider}\u0000${api_key}`;
+      rows.set(id, { provider, api_key });
+      matched++;
+    }
+    if (!matched) ignored++;
+  }
+  return { rows: [...rows.values()], ignored };
+}
+
+export function defaultVaultPriority(provider: string): number {
+  return provider === "groq" ? 20 : 100;
 }
 
 export async function loadAiSettings(): Promise<AiSettings | null> {
@@ -287,6 +342,117 @@ export class ProviderError extends Error {
   }
 }
 
+/** مصدر Keyless مأخوذ من server/src/providers/index.ts داخل مرجع FreeLLMAPI. */
+export const KEYLESS_KILO_BASE_URL = "https://api.kilo.ai/api/gateway/v1";
+export const KEYLESS_KILO_MODELS_URL = "https://api.kilo.ai/api/gateway/models";
+const KEYLESS_MODEL_CACHE_MS = 5 * 60 * 1000;
+let keylessModelCache: { models: string[]; expiresAt: number } | null = null;
+
+let openRouterFreeModelCache: { models: string[]; needsTools: boolean; expiresAt: number } | null = null;
+
+async function loadOpenRouterFreeModels(needsTools: boolean): Promise<string[]> {
+  if (
+    openRouterFreeModelCache &&
+    openRouterFreeModelCache.needsTools === needsTools &&
+    openRouterFreeModelCache.expiresAt > Date.now()
+  )
+    return openRouterFreeModelCache.models;
+  let response: Response;
+  try {
+    response = await fetch("https://openrouter.ai/api/v1/models", {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      redirect: "error",
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch (error) {
+    throw new ProviderError(`OpenRouter model discovery failed: ${String(error).slice(0, 120)}`, null);
+  }
+  if (!response.ok)
+    throw new ProviderError(`OpenRouter model discovery returned ${response.status}`, response.status);
+  const payload = await response.json().catch(() => null) as {
+    data?: Array<{
+      id?: unknown;
+      pricing?: { prompt?: unknown; completion?: unknown };
+      supported_parameters?: unknown;
+      endpoints?: unknown;
+    }>;
+  } | null;
+  const all = (payload?.data ?? []).filter((model) => {
+    if (typeof model.id !== "string") return false;
+    const isZeroPrice = (value: unknown) =>
+      (typeof value === "number" && value === 0) ||
+      (typeof value === "string" && value.trim() !== "" && Number(value) === 0);
+    const free = model.id.endsWith(":free") ||
+      (isZeroPrice(model.pricing?.prompt) && isZeroPrice(model.pricing?.completion));
+    const supportsChat =
+      !Array.isArray(model.endpoints) || model.endpoints.includes("/api/v1/chat/completions");
+    const tools = Array.isArray(model.supported_parameters) && model.supported_parameters.includes("tools");
+    return free && supportsChat && (!needsTools || tools || !Array.isArray(model.supported_parameters));
+  });
+  const models = all
+    .map((model) => model.id as string)
+    .sort((a, b) => (/llama/i.test(a) ? 0 : 1) - (/llama/i.test(b) ? 0 : 1) || a.localeCompare(b));
+  if (!models.length) throw new ProviderError("OpenRouter has no currently listed free model for this request.", 503);
+  openRouterFreeModelCache = { models, needsTools, expiresAt: Date.now() + KEYLESS_MODEL_CACHE_MS };
+  return models;
+}
+
+export async function firstOpenRouterFreeModel(): Promise<string> {
+  return (await loadOpenRouterFreeModels(false))[0];
+}
+
+/** يقبل مسارات Kilo المجانية الحالية فقط، ويعيد ترتيبها لتفضيل Llama ثم Mistral. */
+export function parseKiloFreeModels(payload: unknown): string[] {
+  if (!payload || typeof payload !== "object") return [];
+  const data = payload as { data?: unknown; models?: unknown };
+  const rows = Array.isArray(payload)
+    ? payload
+    : Array.isArray(data.data)
+      ? data.data
+      : Array.isArray(data.models)
+        ? data.models
+        : [];
+  const ids = rows
+    .map((row) => (typeof row === "string" ? row : (row as { id?: unknown })?.id))
+    .filter((id): id is string => typeof id === "string" && id.endsWith(":free"));
+  return [...new Set(ids)].sort((a, b) => {
+    const rank = (id: string) => (/llama/i.test(id) ? 0 : /mistral/i.test(id) ? 1 : 2);
+    return rank(a) - rank(b) || a.localeCompare(b);
+  });
+}
+
+async function loadKiloFreeModels(): Promise<string[]> {
+  if (keylessModelCache && keylessModelCache.expiresAt > Date.now())
+    return keylessModelCache.models;
+  let response: Response;
+  try {
+    response = await fetch(KEYLESS_KILO_MODELS_URL, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch (error) {
+    throw new ProviderError(`Kilo model discovery failed: ${String(error).slice(0, 120)}`, null);
+  }
+  if (!response.ok) throw new ProviderError(`Kilo model discovery returned ${response.status}`, response.status);
+  const models = parseKiloFreeModels(await response.json().catch(() => null));
+  if (!models.length) throw new ProviderError("Kilo returned no active :free chat models.", 503);
+  keylessModelCache = { models, expiresAt: Date.now() + KEYLESS_MODEL_CACHE_MS };
+  return models;
+}
+
+/** لا نرسل الطلب إلى مسار مجهول بسبب مفتاح مرفوض؛ نستخدمه عند غياب المفاتيح أو الحصة/العطل المؤقت. */
+export function shouldFallbackToKeyless(status: number | null, message: string): boolean {
+  const kind = classifyProviderError(status, message);
+  if (kind === "auth") return false;
+  if (kind === "quota") return true;
+  return (
+    (status !== null && [402, 408, 429, 500, 502, 503, 504, 529].includes(status)) ||
+    /timeout|timed out|network|fetch failed|overloaded|temporarily unavailable|UNAVAILABLE|RESOURCE_EXHAUSTED|high demand/i.test(message)
+  );
+}
+
 /**
  * Groq (مفتاح GROQ_API_KEY في أسرار المشروع) هو المحرك الأساسي السريع؛
  * لو فشل أو غير موجود نرجع لإعدادات المسؤول (Dahl) كاحتياطي.
@@ -317,11 +483,14 @@ export async function callOpenAICompatible(
   contents: unknown,
   config: Record<string, any>,
 ): Promise<AdapterResponse> {
+  const failures: unknown[] = [];
+  let providerCalls = 0;
   // 1) خزانة المفاتيح: كل مزود بمفاتيحه بالترتيب، وعند فشل الكل ننتقل للمزود التالي ثم للمسار القديم.
   if (!config.skipVault) {
     const vault = await import("@/lib/ai-key-vault.server");
     const groups = vault.groupByProvider(vault.usableKeys(await vault.listVaultKeys()));
     for (const g of groups) {
+      providerCalls++;
       try {
         const res = await callProviderChain(
           { provider: g.provider, api_key: g.keys.join(","), base_url: g.baseUrl, model: g.model },
@@ -330,7 +499,9 @@ export async function callOpenAICompatible(
         );
         if (res.text.trim() || res.candidates[0]?.content.parts.some((p) => p.functionCall))
           return res;
+        throw new ProviderError("وصل رد فارغ من المزود.", null);
       } catch (error) {
+        failures.push(error);
         console.warn(`[ai] vault provider ${g.provider} failed, next…`, String((error as Error)?.message ?? error).slice(0, 120));
       }
     }
@@ -356,7 +527,7 @@ export async function callOpenAICompatible(
     settings = { ...settings, model: String(config.chatModel) };
   }
   if (groqKey && !/groq\.com/i.test(settings.base_url || "") && settings.provider !== "groq") {
-    let groqError: unknown;
+    providerCalls++;
     try {
       const res = await callProviderChain(
         {
@@ -370,21 +541,34 @@ export async function callOpenAICompatible(
       );
       if (res.text.trim() || res.candidates[0]?.content.parts.some((p) => p.functionCall))
         return res;
+      throw new ProviderError("وصل رد فارغ من Groq.", null);
     } catch (error) {
-      groqError = error;
+      failures.push(error);
       console.warn(
         "[ai] Groq failed, falling back:",
         String((error as Error)?.message ?? error).slice(0, 160),
       );
     }
-    // لا يوجد مزود احتياطي مضبوط: نُظهر خطأ Groq الحقيقي بدل رسالة "المفتاح غير موجود".
-    if (!splitKeys(settings.api_key).length) {
-      throw groqError instanceof ProviderError
-        ? groqError
-        : new ProviderError(String((groqError as Error)?.message ?? "لم يصل رد من Groq."), null);
-    }
   }
-  return callProviderChain(settings, contents, config);
+  const configuredBaseUrl = (settings.base_url || findPreset(settings.provider)?.baseUrl || "").replace(/\/+$/, "");
+  if (configuredBaseUrl && splitKeys(settings.api_key).length) providerCalls++;
+  try {
+    const res = await callProviderChain(settings, contents, config);
+    if (res.text.trim() || res.candidates[0]?.content.parts.some((p) => p.functionCall)) return res;
+    failures.push(new ProviderError("وصل رد فارغ من المزود المحدد.", null));
+  } catch (error) {
+    failures.push(error);
+  }
+
+  const retryableFailure = failures.some((error) => {
+    const status = error instanceof ProviderError ? error.status : null;
+    return shouldFallbackToKeyless(status, String((error as Error)?.message ?? error));
+  });
+  if (config.disableKeyless !== true && (config.forceKeylessFallback === true || providerCalls === 0 || retryableFailure)) {
+    return callKeylessFallback(contents, config);
+  }
+  const lastError = failures[failures.length - 1];
+  throw lastError instanceof Error ? lastError : new ProviderError("تعذر الاتصال بمزودي الذكاء الاصطناعي.", null);
 }
 
 async function callProviderChain(
@@ -404,11 +588,22 @@ async function callProviderChain(
     throw new ProviderError("لم يتم تحديد اسم النموذج في إعدادات الذكاء الاصطناعي.", null);
 
   const baseBody = geminiToOpenAI(contents, config);
+  const automaticOpenRouterModels =
+    settings.provider === "openrouter" && settings.model === OPENROUTER_FREE_MODEL
+      ? await loadOpenRouterFreeModels(Array.isArray(baseBody.tools) && baseBody.tools.length > 0)
+      : null;
   const startedAt = Date.now();
   const deadlineMs = typeof config.deadlineMs === "number" ? config.deadlineMs : 75000;
   // لو النموذج الأول بطيء، نبدأ نموذجًا ثانيًا بالتوازي بعد هذه المدة ونأخذ أسرع رد.
   const hedgeMs = typeof config.hedgeMs === "number" ? config.hedgeMs : 15000;
-  const initialQueue = () => modelQueue(settings.model!, baseUrl);
+  const initialQueue = () => {
+    if (!automaticOpenRouterModels) return modelQueue(settings.model!, baseUrl);
+    const lastGood = lastGoodModel.get(baseUrl);
+    return [...new Set([
+      ...(lastGood && automaticOpenRouterModels.includes(lastGood) ? [lastGood] : []),
+      ...automaticOpenRouterModels,
+    ])];
+  };
   const tried = new Set<string>();
   const queue = initialQueue();
   const stop = new AbortController();
@@ -578,13 +773,19 @@ async function callOneModel(
   let res: Response | undefined;
   let raw = "";
   if (/groq\.com/i.test(baseUrl)) body = groqTune(body);
-  for (const key of orderKeys(keys)) {
+  if (!keys.length && !(provider === "kilo" && baseUrl === KEYLESS_KILO_BASE_URL))
+    throw new ProviderError("لم يتم توفير مفتاح للمزود.", 401);
+  const requestKeys = keys.length ? orderKeys(keys) : [""];
+  for (const key of requestKeys) {
     // إعادة محاولة قصيرة عند ازدحام خوادم المزود المؤقت فقط.
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         res = await fetch(`${baseUrl}/chat/completions`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+          headers: {
+            "Content-Type": "application/json",
+            ...(key ? { Authorization: `Bearer ${key}` } : {}),
+          },
           body: JSON.stringify(body),
           signal: combineSignals(cancel, timeoutMs),
         });
@@ -626,6 +827,37 @@ async function callOneModel(
   return openAIToGemini(JSON.parse(raw));
 }
 
+/** شبكة الطوارئ: لا تُرسل ترويسة Authorization، وتختار فقط نماذج :free من قائمة Kilo الحية. */
+export async function callKeylessFallback(
+  contents: unknown,
+  config: Record<string, any> = {},
+): Promise<AdapterResponse> {
+  const models = await loadKiloFreeModels();
+  const requestBody = geminiToOpenAI(contents, config);
+  const timeoutMs = Math.min(
+    typeof config.deadlineMs === "number" ? config.deadlineMs : 25000,
+    25000,
+  );
+  let lastError: ProviderError | null = null;
+  for (const model of models.slice(0, 3)) {
+    try {
+      return await callOneModel(
+        KEYLESS_KILO_BASE_URL,
+        [],
+        "kilo",
+        { model, ...requestBody },
+        timeoutMs,
+      );
+    } catch (error) {
+      lastError = error instanceof ProviderError
+        ? error
+        : new ProviderError(String((error as Error)?.message ?? error), null);
+      if (lastError.status === 401 || lastError.status === 403) break;
+    }
+  }
+  throw lastError ?? new ProviderError("لم ينجح أي نموذج مجاني مجهول من Kilo.", 503);
+}
+
 /**
  * توليد نص بسيط من المزود النشط في الإعدادات (Dahl/OpenAI-compatible أو Gemini).
  * كل أدوات المتجر النصية البسيطة تمر من هنا بدل استدعاء Gemini مباشرة.
@@ -642,27 +874,76 @@ export async function generatePlainText(
   };
   if (opts.system) config.systemInstruction = opts.system;
   try {
-    if ((provider !== "gemini" && settings) || process.env.GROQ_API_KEY || (await import("@/lib/ai-key-vault.server").then(async (v) => v.usableKeys(await v.listVaultKeys()).length > 0))) {
+    const vault = await import("@/lib/ai-key-vault.server");
+    const vaultKeys = vault.usableKeys(await vault.listVaultKeys());
+    const geminiVaultKeys = vaultKeys
+      .filter((key) => String(key.provider).toLowerCase() === "gemini")
+      .filter((key) => Boolean(key.api_key));
+    const nonGeminiVaultKeys = vaultKeys.some((key) => String(key.provider).toLowerCase() !== "gemini");
+    const defaultGeminiModel = settings?.model || findPreset("gemini")?.modelHint || "gemini-3.1-flash-lite";
+    const geminiCredentials = new Map<string, string>();
+    if (provider === "gemini") {
+      for (const key of splitKeys(settings?.api_key)) geminiCredentials.set(key, defaultGeminiModel);
+      for (const row of geminiVaultKeys)
+        if (!geminiCredentials.has(row.api_key))
+          geminiCredentials.set(row.api_key, row.model || defaultGeminiModel);
+      for (const key of splitKeys(process.env.GEMINI_API_KEY))
+        if (!geminiCredentials.has(key)) geminiCredentials.set(key, defaultGeminiModel);
+    }
+
+    if ((provider !== "gemini" && settings) || !geminiCredentials.size) {
       const res = await callOpenAICompatible(
-        settings ?? { provider: "groq", api_key: null, base_url: null, model: null },
+        settings ?? { provider: "gemini", api_key: null, base_url: null, model: null },
         prompt,
         { ...config, deadlineMs: opts.deadlineMs },
       );
       if (!res.text.trim()) throw new ProviderError("لم يصل رد من المزود.", null);
       return res.text.trim();
     }
-    const key = splitKeys(settings?.api_key)[0] || process.env.GEMINI_API_KEY;
-    if (!key) throw new ProviderError("لم يتم وضع مفتاح الذكاء الاصطناعي في الإعدادات.", 401);
+
+    let lastGeminiError: unknown;
     const { GoogleGenAI } = await import("@google/genai");
-    const ai = new GoogleGenAI({ apiKey: key });
-    const r = await ai.models.generateContent({
-      model: settings?.model || "gemini-3.5-flash",
-      contents: prompt,
-      config,
-    });
-    const text = r.text?.trim();
-    if (!text) throw new ProviderError("لم يصل رد من المزود.", null);
-    return text;
+    for (const [key, model] of geminiCredentials) {
+      try {
+        const ai = new GoogleGenAI({ apiKey: key, httpOptions: { timeout: 30000, retryOptions: { attempts: 1 } } });
+        const r = await ai.models.generateContent({
+          model,
+          contents: prompt,
+          config,
+        });
+        const text = r.text?.trim();
+        if (!text) throw new ProviderError("لم يصل رد من المزود.", null);
+        return text;
+      } catch (error) {
+        lastGeminiError = error;
+        const status = typeof (error as { status?: unknown })?.status === "number"
+          ? (error as { status: number }).status
+          : null;
+        const message = String((error as Error)?.message ?? error);
+        if (classifyProviderError(status, message) === "auth" || shouldFallbackToKeyless(status, message))
+          continue;
+        throw error;
+      }
+    }
+
+    const geminiStatus = typeof (lastGeminiError as { status?: unknown } | null)?.status === "number"
+      ? (lastGeminiError as { status: number }).status
+      : null;
+    const geminiMessage = String((lastGeminiError as Error)?.message ?? lastGeminiError ?? "");
+    const retryable = shouldFallbackToKeyless(geminiStatus, geminiMessage);
+    if (nonGeminiVaultKeys || process.env.GROQ_API_KEY || retryable) {
+      const fallback = await callOpenAICompatible(
+        settings ?? { provider: "gemini", api_key: null, base_url: null, model: null },
+        prompt,
+        {
+        ...config,
+        deadlineMs: opts.deadlineMs,
+        forceKeylessFallback: retryable,
+        },
+      );
+      if (fallback.text.trim()) return fallback.text.trim();
+    }
+    throw lastGeminiError ?? new ProviderError("لم يصل رد من المزود.", null);
   } catch (error) {
     const status = error instanceof ProviderError ? error.status : null;
     const kind = classifyProviderError(status, String((error as Error)?.message ?? ""));

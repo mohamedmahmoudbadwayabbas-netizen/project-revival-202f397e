@@ -1876,6 +1876,100 @@
   border: 1px solid #b6502e;
   background: #fff;
 }
+
+/* Executive dashboard visual language shared by the main admin workspaces. */
+.admin-products .overflow-x-auto > table thead,
+.admin-orders .admin-orders-table thead {
+  color: #475569;
+  background: #f8fafc;
+}
+.admin-products .overflow-x-auto > table th,
+.admin-products .overflow-x-auto > table td,
+.admin-orders .admin-orders-table th,
+.admin-orders .admin-orders-table td {
+  border-color: #f1f5f9;
+}
+.admin-products .overflow-x-auto > table tbody tr:hover,
+.admin-orders .admin-orders-table tbody tr:hover {
+  background: #f8fafc;
+}
+.admin-orders__page-title h1 {
+  color: #0f172a;
+}
+.admin-orders__page-title p {
+  color: #64748b;
+}
+.admin-orders__page-title > span {
+  color: #047857;
+}
+.admin-orders__status-tabs [role="tab"] {
+  color: #475569;
+  background: #f1f5f9;
+}
+.admin-orders [role="tablist"] {
+  border-color: #e2e8f0;
+  border-radius: 999px;
+  background: #f1f5f9;
+}
+.admin-orders__status-tabs [role="tab"][data-state="active"] {
+  color: #fff;
+  border-color: #059669;
+  background: #059669;
+}
+.admin-orders__filters {
+  border-color: #e2e8f0;
+  border-radius: 24px;
+  background: rgb(248 250 252 / 70%);
+}
+.admin-orders__filters select,
+.admin-orders__search {
+  border-color: #e2e8f0;
+  border-radius: 999px;
+  color: #334155;
+  background: #fff;
+}
+.admin-orders__search {
+  background: rgb(248 250 252 / 70%);
+}
+.admin-orders__card {
+  border-color: #f1f5f9 !important;
+  border-radius: 20px !important;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 5%) !important;
+}
+.admin-orders__search input {
+  border-radius: 999px;
+}
+.admin-orders-table-wrap {
+  border-color: #f1f5f9;
+  border-radius: 24px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 5%);
+}
+.admin-orders-table {
+  color: #475569;
+}
+.admin-orders-table td strong {
+  color: #0f172a;
+}
+.admin-orders__status-pill.status-pending {
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  background: #f1f5f9;
+}
+.admin-orders__status-pill.status-confirmed,
+.admin-orders__status-pill.status-ready_for_delivery {
+  color: #b45309;
+  background: #fffbeb;
+}
+.admin-orders__status-pill.status-shipped,
+.admin-orders__status-pill.status-delivered {
+  color: #047857;
+  background: #ecfdf5;
+}
+.admin-orders__status-pill.status-cancelled {
+  color: #be123c;
+  border-color: #ffe4e6;
+  background: #fff1f2;
+}
 .admin-order-details-page {
   display: grid;
   gap: 0.8rem;
