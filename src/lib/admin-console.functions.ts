@@ -62,6 +62,25 @@ async function sanitizeRow(admin: any, table: string, row: unknown, allowId = fa
   return out;
 }
 
+// Fixed allowlist of fields an admin may import per table; anything else is rejected.
+const INSERT_FIELDS: Partial<Record<StudioTable, readonly string[]>> = {
+  products: ["category_id","description","description_ar","dietary_tags","image_url","images","is_active","is_featured","name","name_ar","old_price","original_price","price","price_per_unit","search_keywords","stock","stock_quantity","unit_label"],
+  categories: ["image_url","name","name_ar","slug"],
+  coupons: ["code","discount_type","discount_value","expires_at","is_active","min_order_amount","usage_limit"],
+  delivery_zones: ["area","city","country","estimated_minutes","fee","governorate","is_active","min_order_amount","name","sort_order"],
+  delivery_slots: ["is_active","max_orders","slot_label","slot_time"],
+  flash_offers: ["discount_percentage","ends_at","is_active","product_ids","starts_at","title"],
+};
+function pickInsertFields(table: StudioTable, row: unknown) {
+  const allowed = INSERT_FIELDS[table];
+  if (!allowed) throw new Error("الاستيراد غير مسموح لهذا الجدول");
+  if (!row || typeof row !== "object" || Array.isArray(row)) throw new Error("سجل غير صالح");
+  const out: Record<string, unknown> = {};
+  for (const k of allowed) if (k in (row as Record<string, unknown>)) out[k] = (row as Record<string, unknown>)[k];
+  if (!Object.keys(out).length) throw new Error("لا توجد حقول صالحة");
+  return out;
+}
+
 function assertTable(t: string): StudioTable {
   if (!(STUDIO_TABLES as readonly string[]).includes(t)) throw new Error("جدول غير مسموح");
   return t as StudioTable;
@@ -189,15 +208,22 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
 
 export const sendPasswordReset = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { email: string; redirectTo: string }) => d)
+  .inputValidator((d: { userId: string }) => {
+    if (typeof d?.userId !== "string" || !/^[0-9a-f-]{36}$/i.test(d.userId)) throw new Error("مستخدم غير صالح");
+    return { userId: d.userId };
+  })
   .handler(async ({ data, context }) => {
     const { admin, log } = await requireAdmin(context);
+    // Recipient is always the stored email of an existing account, never caller-supplied.
+    const { data: found, error: findErr } = await admin.auth.admin.getUserById(data.userId);
+    const email = found?.user?.email;
+    if (findErr || !email) throw new Error("لا يوجد بريد لهذا المستخدم");
     const allowed = (process.env.SITE_URL || "https://revival-review-retail.lovable.app").replace(/\/$/, "");
-    const { error } = await admin.auth.resetPasswordForEmail(data.email, {
+    const { error } = await admin.auth.resetPasswordForEmail(email, {
       redirectTo: `${allowed}/auth`,
     });
     if (error) throw new Error(error.message);
-    await log("إرسال رابط كلمة مرور", data.email);
+    await log("إرسال رابط كلمة مرور", data.userId);
     return { ok: true };
   });
 
@@ -289,7 +315,7 @@ export const studioInsert = createServerFn({ method: "POST" })
     if (table === "user_roles") throw new Error("غيّر الرتب من صفحة المستخدمين");
     if (!Array.isArray(data.rows) || data.rows.length > 1000) throw new Error("عدد سجلات غير صالح");
     const rows = [];
-    for (const r of data.rows) rows.push(await sanitizeRow(admin, table, r));
+    for (const r of data.rows) rows.push(pickInsertFields(table, r));
     const { error } = await admin.from(table).insert(rows);
     if (error) throw new Error(error.message);
     await log("استيراد سجلات", table, { count: data.rows.length });

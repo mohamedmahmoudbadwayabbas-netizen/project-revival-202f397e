@@ -315,10 +315,7 @@ function UsersPage() {
                           onClick={() =>
                             run(
                               resetFn({
-                                data: {
-                                  email: u.email,
-                                  redirectTo: `${window.location.origin}/auth`,
-                                },
+                                data: { userId: u.id },
                               }),
                               "أُرسل رابط تعيين كلمة المرور",
                             )
