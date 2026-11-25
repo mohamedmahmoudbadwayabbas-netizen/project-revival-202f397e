@@ -126,7 +126,12 @@ function DatabaseStudio() {
   const exportFile = (kind: "csv" | "xlsx") => {
     const ws = XLSX.utils.json_to_sheet(
       (q.data?.rows ?? []).map((r) =>
-        Object.fromEntries(Object.entries(r).map(([k, v]) => [k, show(v)])),
+        Object.fromEntries(
+          Object.entries(r).map(([k, v]) => {
+            const cell = show(v);
+            return [k, typeof cell === "string" && /^[=+\-@\t\r]/.test(cell) ? `'${cell}` : cell];
+          }),
+        ),
       ),
     );
     const wb = XLSX.utils.book_new();

@@ -302,12 +302,14 @@ function OrdersPage() {
   };
 
   // طباعة الفاتورة الفورية
+  const esc = (v: unknown) =>
+    String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
   const printReceipt = (o: Order) => {
     const w = window.open("", "_blank");
     if (!w) return;
     const storeName = storeSettings?.site_name?.trim() || "نظام إدارة المتجر";
     const logo = storeSettings?.logo_url
-      ? `<img src="${storeSettings.logo_url}" alt="${storeName}" style="display:block;max-width:120px;max-height:60px;margin:0 auto 8px;object-fit:contain;" />`
+      ? `<img src="${esc(storeSettings.logo_url)}" alt="${esc(storeName)}" style="display:block;max-width:120px;max-height:60px;margin:0 auto 8px;object-fit:contain;" />`
       : "";
     w.document.write(`
       <html dir="rtl">
@@ -325,14 +327,14 @@ function OrdersPage() {
         </head>
         <body>
           ${logo}
-          <h2>${storeName}</h2>
+          <h2>${esc(storeName)}</h2>
           <p style="text-align: center;">إيصال تجميع وتوصيل الطلب</p>
           <div class="line"></div>
           <p><b>رقم الطلب:</b> #${o.id.slice(0, 8)}</p>
           <p><b>التاريخ:</b> ${new Date(o.created_at).toLocaleString("ar-EG")}</p>
-          <p><b>العميل:</b> ${o.customer_name}</p>
-          <p><b>الهاتف:</b> ${o.phone}</p>
-          <p><b>العنوان:</b> ${o.address}</p>
+          <p><b>العميل:</b> ${esc(o.customer_name)}</p>
+          <p><b>الهاتف:</b> ${esc(o.phone)}</p>
+          <p><b>العنوان:</b> ${esc(o.address)}</p>
           <div class="line"></div>
           <table>
             <thead>
@@ -343,9 +345,9 @@ function OrdersPage() {
                 .map(
                   (it) => `
                 <tr>
-                  <td>${it.name}</td>
-                  <td>${it.quantity} ${it.unit_label || ""}</td>
-                  <td>${it.subtotal} ج.م</td>
+                  <td>${esc(it.name)}</td>
+                  <td>${esc(it.quantity)} ${esc(it.unit_label || "")}</td>
+                  <td>${esc(it.subtotal)} ج.م</td>
                 </tr>
               `,
                 )
@@ -353,7 +355,7 @@ function OrdersPage() {
             </tbody>
           </table>
           <div class="line"></div>
-          <p class="total">الإجمالي المستحق: ${o.total_amount} ج.م</p>
+          <p class="total">الإجمالي المستحق: ${esc(o.total_amount)} ج.م</p>
           <div class="line"></div>
           <p style="text-align: center; font-size: 10px; margin-top: 15px;">شكراً لتسوقكم معنا!</p>
         </body>

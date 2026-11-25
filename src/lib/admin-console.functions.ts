@@ -46,6 +46,22 @@ async function requireAdmin(context: any) {
   return { admin, log };
 }
 
+const BLOCKED_FIELDS = new Set(["id", "created_at", "updated_at", "user_id", "role", "actor_id"]);
+async function sanitizeRow(admin: any, table: string, row: unknown, allowId = false) {
+  if (!row || typeof row !== "object" || Array.isArray(row)) throw new Error("سجل غير صالح");
+  const { data: sample } = await admin.from(table).select("*").limit(1);
+  const known = sample?.[0] ? new Set(Object.keys(sample[0])) : null;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(row as Record<string, unknown>)) {
+    if (!/^[a-z_][a-z0-9_]*$/.test(k)) continue;
+    if (BLOCKED_FIELDS.has(k) && !(allowId && k === "id")) continue;
+    if (known && !known.has(k)) continue;
+    out[k] = v;
+  }
+  if (!Object.keys(out).length) throw new Error("لا توجد حقول صالحة");
+  return out;
+}
+
 function assertTable(t: string): StudioTable {
   if (!(STUDIO_TABLES as readonly string[]).includes(t)) throw new Error("جدول غير مسموح");
   return t as StudioTable;
@@ -176,8 +192,9 @@ export const sendPasswordReset = createServerFn({ method: "POST" })
   .inputValidator((d: { email: string; redirectTo: string }) => d)
   .handler(async ({ data, context }) => {
     const { admin, log } = await requireAdmin(context);
+    const allowed = (process.env.SITE_URL || "https://revival-review-retail.lovable.app").replace(/\/$/, "");
     const { error } = await admin.auth.resetPasswordForEmail(data.email, {
-      redirectTo: data.redirectTo,
+      redirectTo: `${allowed}/auth`,
     });
     if (error) throw new Error(error.message);
     await log("إرسال رابط كلمة مرور", data.email);
@@ -244,7 +261,7 @@ export const studioUpdate = createServerFn({ method: "POST" })
     const { admin, log } = await requireAdmin(context);
     const table = assertTable(data.table);
     if (table === "user_roles") throw new Error("غيّر الرتب من صفحة المستخدمين");
-    const { error } = await admin.from(table).update(data.patch).eq("id", data.id);
+    const { error } = await admin.from(table).update(await sanitizeRow(admin, table, data.patch)).eq("id", data.id);
     if (error) throw new Error(error.message);
     await log("تعديل سجل", `${table}/${data.id}`, data.patch);
     return { ok: true };
@@ -270,7 +287,10 @@ export const studioInsert = createServerFn({ method: "POST" })
     const { admin, log } = await requireAdmin(context);
     const table = assertTable(data.table);
     if (table === "user_roles") throw new Error("غيّر الرتب من صفحة المستخدمين");
-    const { error } = await admin.from(table).insert(data.rows);
+    if (!Array.isArray(data.rows) || data.rows.length > 1000) throw new Error("عدد سجلات غير صالح");
+    const rows = [];
+    for (const r of data.rows) rows.push(await sanitizeRow(admin, table, r));
+    const { error } = await admin.from(table).insert(rows);
     if (error) throw new Error(error.message);
     await log("استيراد سجلات", table, { count: data.rows.length });
     return { ok: true };
