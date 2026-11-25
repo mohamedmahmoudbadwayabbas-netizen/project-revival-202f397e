@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "sdk_version": "0.22.2",
+  "sdk_version": "3.6.0",
   "path": "/mcp",
   "auth": {
     "type": "oauth",
@@ -26,7 +26,7 @@
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {
             "query": {
@@ -44,7 +44,8 @@
           },
           "required": [
             "query"
-          ]
+          ],
+          "additionalProperties": false
         },
         "outputSchema": null
       },
@@ -58,7 +59,7 @@
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {
             "id": {
@@ -70,7 +71,8 @@
           },
           "required": [
             "id"
-          ]
+          ],
+          "additionalProperties": false
         },
         "outputSchema": null
       },
@@ -84,9 +86,10 @@
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
-          "properties": {}
+          "properties": {},
+          "additionalProperties": false
         },
         "outputSchema": null
       },
@@ -100,7 +103,7 @@
           "openWorldHint": false
         },
         "inputSchema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "type": "object",
           "properties": {
             "limit": {
@@ -109,7 +112,8 @@
               "minimum": 1,
               "maximum": 50
             }
-          }
+          },
+          "additionalProperties": false
         },
         "outputSchema": null
       }
