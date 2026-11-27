@@ -221,11 +221,11 @@ export const generateGeminiContent = createServerFn({ method: "POST" })
 
     // All providers share the server-owned customer boundary; caller prompts are discarded.
     if (!isAdmin && !isModerator) {
-      const { loadNawatSystemPrompt } = await import("@/lib/nawat/system-prompt");
-      const config = { ...(data.config ?? {}) };
-      config.systemInstruction = await loadNawatSystemPrompt(context.supabase, context.userId);
-      delete config.instructions;
-      data.config = config;
+      const { loadNawatSystemPrompt, withTrustedNawatPrompt } = await import("@/lib/nawat/system-prompt");
+      data.config = withTrustedNawatPrompt(
+        data.config,
+        await loadNawatSystemPrompt(context.supabase, context.userId),
+      );
     }
 
     const {

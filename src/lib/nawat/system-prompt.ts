@@ -25,6 +25,13 @@ export interface NawatPromptConfig {
 const MAX_RULES = 30;
 const MAX_RULE_LENGTH = 300;
 
+/** The caller's configuration cannot supply an alternate system instruction. */
+export function withTrustedNawatPrompt(config: Record<string, unknown> | undefined, prompt: string) {
+  const safe = { ...(config ?? {}), systemInstruction: prompt };
+  delete (safe as Record<string, unknown>).instructions;
+  return safe;
+}
+
 function cleanList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value

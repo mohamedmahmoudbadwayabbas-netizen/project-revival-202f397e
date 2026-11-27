@@ -42,3 +42,4 @@ use the editor.
 - After every task, append changes/state/remaining to WORK_LOG.md and update roadmap.md with the phase plan — the next model continues from these files alone.
 - Simple AI text features call generatePlainText in ai-provider.server.ts (active provider from settings) — never instantiate a provider SDK directly in a feature.
 - AI tools reach the model only through src/services/aiTools/intentRouter.ts (19 constitution clusters: 9 Nawat, 10 Nebras; ≤5 tools per call; "planned" clusters are never sent) — saves tokens and prevents tool confusion.
+- Keep Nawat prompt composition and price verification in browser-safe pure modules; the authenticated server rebuilds customer prompts before every provider branch — makes guardrails testable and prevents caller-controlled system instructions.
