@@ -220,7 +220,7 @@ export function HomePage() {
       className="min-h-screen overflow-x-hidden bg-background text-right text-foreground"
       dir="rtl"
     >
-      {/* ١. البحث الموحد على الجوال + سلايدر العروض المتحرك */}
+      {/* 1. البحث الموحد على الجوال + سلايدر العروض المتحرك */}
       <section className="px-3 pt-3 sm:px-6 sm:pt-5">
         <div id="mobile-unified-search" className="mx-auto mb-3 max-w-[1320px] md:hidden">
           <SmartSearchBar placeholder="ابحث عن منتج أو اكتب طلبك…" />
@@ -235,15 +235,15 @@ export function HomePage() {
         >
           <span className="inline-flex items-center gap-1.5 text-foreground">
             <Truck className="h-4 w-4 text-primary" aria-hidden="true" />
-            توصيل سريع خلال ٤٥ دقيقة
+            توصيل لباب بيتك
           </span>
           <span className="inline-flex items-center gap-1.5 text-foreground">
             <Banknote className="h-4 w-4 text-primary" aria-hidden="true" />
-            الدفع عند الاستلام أو أونلاين
+            الدفع عند الاستلام أو بإنستاباي
           </span>
           <span className="inline-flex items-center gap-1.5 text-foreground">
             <RotateCcw className="h-4 w-4 text-primary" aria-hidden="true" />
-            استبدال واسترجاع فوري
+            أنت تختار البديل لو صنف خلص
           </span>
         </div>
       </section>
@@ -251,7 +251,7 @@ export function HomePage() {
       <BuyAgainRail onOpenProduct={setSelectedProductForModal} />
 
       <div className="mx-auto max-w-[1320px] px-3 sm:px-6">
-        {/* ٢. أقسام المتجر */}
+        {/* 2. أقسام المتجر */}
         <section id="home-departments" className="mt-6 sm:mt-8">
           <CategoryGrid
             categories={categories}
@@ -261,7 +261,7 @@ export function HomePage() {
           />
         </section>
 
-        {/* ٣. عروض الأسبوع المميزة (تظهر فقط في التصفح العام بدون تكرار في الشبكة أدناه) */}
+        {/* 3. عروض الأسبوع المميزة (تظهر فقط في التصفح العام بدون تكرار في الشبكة أدناه) */}
         {showOffersStrip && (
           <section
             id="weekly-offers"
@@ -316,7 +316,7 @@ export function HomePage() {
           </div>
         )}
 
-        {/* ٤. شبكة المنتجات الرئيسية (بدون تكرار العناصر المعروضة في العروض المميزة) */}
+        {/* 4. شبكة المنتجات الرئيسية (بدون تكرار العناصر المعروضة في العروض المميزة) */}
         <section id="supermarket-shelves" className="mt-9 scroll-mt-20 sm:mt-11">
           <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -454,7 +454,7 @@ export function HomePage() {
             </Link>
           </nav>
           <span className="text-xs text-emerald-100/75">
-            © ٢٠٢٦ {settings.site_name || BRAND_NAME_AR}
+            © {new Date().getFullYear()} {settings.site_name || BRAND_NAME_AR}
           </span>
         </div>
       </footer>

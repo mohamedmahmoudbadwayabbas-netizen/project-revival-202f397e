@@ -52,7 +52,7 @@ export function Header() {
   return (
     <header className="elwadi-main-header sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md transition-colors">
       <div className="mx-auto flex h-14 max-w-[1320px] items-center justify-between gap-3 px-3 sm:h-16 sm:px-6">
-        {/* المنطقة ١: القائمة + الشعار النظيف */}
+        {/* المنطقة 1: القائمة + الشعار النظيف */}
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
             <SheetTrigger asChild>
@@ -257,12 +257,12 @@ export function Header() {
           </Link>
         </div>
 
-        {/* المنطقة ٢: البحث الذكي الموحّد (مدمج في الهيدر للشاشات المتوسطة والكبيرة) */}
+        {/* المنطقة 2: البحث الذكي الموحّد (مدمج في الهيدر للشاشات المتوسطة والكبيرة) */}
         <div className="hidden max-w-md flex-1 md:block lg:max-w-lg">
           <SmartSearchBar placeholder="ابحث عن منتج.. طماطم، أرز، لحم، حليب" />
         </div>
 
-        {/* المنطقة ٣: أدوات العميل الأساسية */}
+        {/* المنطقة 3: أدوات العميل الأساسية */}
         <div className="flex items-center gap-1.5">
           {!isHomePage && (
             <button

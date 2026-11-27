@@ -49,7 +49,7 @@ function ActivityPage() {
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">
                     <span dir="ltr">{a.actor_email ?? "—"}</span> ·{" "}
-                    {new Date(a.created_at).toLocaleString("ar-EG")}
+                    {new Date(a.created_at).toLocaleString("ar-EG-u-nu-latn")}
                   </div>
                 </div>
               </li>

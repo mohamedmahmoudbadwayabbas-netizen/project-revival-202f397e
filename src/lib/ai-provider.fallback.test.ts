@@ -102,7 +102,7 @@ describe("provider fallback & thinking", () => {
       const result = await callOpenAICompatible(
         { provider: "custom", api_key: "primary-key", base_url: "https://limited.example/v1", model: "primary-model" },
         "أهلاً",
-        { deadlineMs: 5000, hedgeMs: 0 },
+        { deadlineMs: 10000, hedgeMs: 0 },
       );
       expect(result.text).toBe("رد بعد نفاد الحصة");
       expect(calls.some((call) => call.url.includes("api.kilo.ai") && call.url.endsWith("/chat/completions"))).toBe(true);

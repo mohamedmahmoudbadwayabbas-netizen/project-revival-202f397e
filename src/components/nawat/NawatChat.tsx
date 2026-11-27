@@ -51,9 +51,9 @@ const STARTER_CARDS = [
     icon: Utensils,
   },
   {
-    title: "مقاضي بميزانية ٥٠٠ جنيه",
+    title: "مقاضي بميزانية 500 جنيه",
     desc: "تجميعة أساسية ذكية بأفضل قيمة",
-    prompt: "مقاضي الأسبوع بميزانية ٥٠٠ جنيه",
+    prompt: "مقاضي الأسبوع بميزانية 500 جنيه",
     icon: Wallet,
   },
   {
@@ -72,7 +72,7 @@ const STARTER_CARDS = [
 
 const now = () => new Date().toISOString();
 const uid = () => crypto.randomUUID();
-const money = (n: number) => `${n.toLocaleString("ar-EG", { maximumFractionDigits: 2 })} ج.م`;
+const money = (n: number) => `${n.toLocaleString("ar-EG-u-nu-latn", { maximumFractionDigits: 2 })} ج.م`;
 
 function ThreadList({ activeId, onPick }: { activeId?: string; onPick?: () => void }) {
   const { data = [] } = useQuery({ queryKey: ["nawat-threads"], queryFn: listThreads });
@@ -165,7 +165,7 @@ function ProductPicks({ picks }: { picks: NawatPick[] }) {
                   {product.name_ar || product.name}
                 </p>
                 <p className="mt-0.5 text-xs font-semibold text-primary">
-                  {money(product.price_per_unit)} × {quantity.toLocaleString("ar-EG")}
+                  {money(product.price_per_unit)} × {quantity.toLocaleString("ar-EG-u-nu-latn")}
                 </p>
                 {reason && (
                   <p className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">{reason}</p>
@@ -348,7 +348,7 @@ function AssistantMessage({ message }: { message: NawatMessage }) {
             type="dynamic-tool"
             toolName="searchProducts"
             state={tool.ok ? "output-available" : "output-error"}
-            title={`بحث في المتجر: ${tool.query || "كل المنتجات"} (${tool.count.toLocaleString("ar-EG")} نتيجة)`}
+            title={`بحث في المتجر: ${tool.query || "كل المنتجات"} (${tool.count.toLocaleString("ar-EG-u-nu-latn")} نتيجة)`}
           />
         </Tool>
       ))}

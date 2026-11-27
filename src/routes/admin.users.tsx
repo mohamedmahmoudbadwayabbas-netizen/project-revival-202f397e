@@ -72,7 +72,7 @@ type Role = "admin" | "staff" | "user";
 const ROLE_LABEL: Record<Role, string> = { admin: "مسؤول", staff: "موظف", user: "عميل" };
 const fmtDate = (d: string | null) =>
   d
-    ? new Date(d).toLocaleDateString("ar-EG", { day: "numeric", month: "short", year: "numeric" })
+    ? new Date(d).toLocaleDateString("ar-EG-u-nu-latn", { day: "numeric", month: "short", year: "numeric" })
     : "—";
 
 function UsersPage() {
@@ -122,7 +122,7 @@ function UsersPage() {
     },
     { label: "حسابات موقوفة", value: all.filter((u) => u.banned).length, icon: Ban },
     {
-      label: "نشطون آخر ٣٠ يومًا",
+      label: "نشطون آخر 30 يومًا",
       value: all.filter((u) => u.lastSignIn && Date.now() - +new Date(u.lastSignIn) < 2592e6)
         .length,
       icon: CheckCircle2,
@@ -441,7 +441,7 @@ function CreateUserDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>كلمة المرور (٨ أحرف على الأقل)</Label>
+            <Label>كلمة المرور (8 أحرف على الأقل)</Label>
             <Input
               dir="ltr"
               type="password"

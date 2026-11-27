@@ -20,23 +20,26 @@ export interface ParsedProductDetails {
  * دالة ذكية لتحليل واستخراج كافة بيانات الذكاء الاصطناعي والمدخلات اليدوية من المنتج
  */
 export function extractProductDetails(product?: Product | null): ParsedProductDetails {
+  // No invented values: a field stays empty unless the product really has it.
+  // (Previously every product showed the nutrition of a tomato, "طبيعي وطازج 100%",
+  // and a generic chef tip — even detergents.)
   const defaultNutrition = {
-    calories: "55 kcal",
-    protein: "1.5 جم",
-    carbs: "11 جم",
-    fiber: "2.2 جم",
-    fats: "0.4 جم",
+    calories: "",
+    protein: "",
+    carbs: "",
+    fiber: "",
+    fats: "",
   };
 
   if (!product) {
     return {
       cleanDescription: "",
       cookingTip: "",
-      characteristics: ["طازج 100%", "جودة مضمونة", "تغليف صحي"],
-      storageInstructions: "يُحفظ في مكان بارد وجاف أو في الثلاجة للحفاظ على النضارة.",
-      originSource: "مزارع ومصادر محلية مصرية معتمدة ومضمونة",
+      characteristics: [],
+      storageInstructions: "",
+      originSource: "",
       nutritionalInfo: defaultNutrition,
-      tags: ["طازج", "بلدي"],
+      tags: [],
     };
   }
 
@@ -46,7 +49,7 @@ export function extractProductDetails(product?: Product | null): ParsedProductDe
   const characteristics: string[] = [];
   let storageInstructions = product.storage_instructions || product.storageInstructions || "";
   let originSource = product.origin_source || product.originSource || "";
-  let cookingTip = product.cooking_tip || "";
+  const cookingTip = product.cooking_tip || "";
 
   let nutrition = { ...defaultNutrition };
 
@@ -150,68 +153,6 @@ export function extractProductDetails(product?: Product | null): ParsedProductDe
       .replace(/#مصدر:[\s\S]*?(?=(#[a-zA-Z\u0600-\u06FF]|$))/g, "")
       .replace(/#تغذية:[\s\S]*?(?=(#[a-zA-Z\u0600-\u06FF]|$))/g, "")
       .trim();
-  }
-
-  // Fallbacks based on category/name if still empty
-  const name = product.name || "";
-  if (!cookingTip) {
-    if (
-      name.includes("لحم") ||
-      name.includes("كفتة") ||
-      name.includes("فراخ") ||
-      name.includes("دجاج")
-    ) {
-      cookingTip =
-        "نصيحة الشيف: للحصول على أفضل مذاق وطراوة، يُتبل اللحم قبل الطهي بنصف ساعة مع قليل من زيت الزيتون والبهارات الطازجة.";
-    } else if (
-      name.includes("جبن") ||
-      name.includes("لبن") ||
-      name.includes("قشطة") ||
-      name.includes("زبادي")
-    ) {
-      cookingTip =
-        "نصيحة الشيف: يُقدم بارداً مع رشة زعتر بري وزيت زيتون بكر وخبز بلدي ساخن لوجبة إفطار متكاملة.";
-    } else {
-      cookingTip =
-        "نصيحة الشيف: يُفضل استخدامه طازجاً في وصفاتك اليومية لإبراز النكهة الطبيعية الغنية والقيمة الغذائية العالية.";
-    }
-  }
-
-  if (characteristics.length === 0) {
-    if (name.includes("لحم") || name.includes("دجاج") || name.includes("فراخ")) {
-      characteristics.push(
-        "لحوم بلدية طازجة 100%",
-        "ذبح وتجهيز يومي معتمد",
-        "إشراف ورقابة بيطرية كاملة",
-      );
-    } else if (name.includes("جبن") || name.includes("حليب") || name.includes("لبن")) {
-      characteristics.push(
-        "ألبان طبيعية 100%",
-        "غني بالكالسيوم والبروتينات",
-        "خالي من الزيوت النباتية المهدرجة",
-      );
-    } else {
-      characteristics.push(
-        "طبيعي وطازج 100%",
-        "منتقى بعناية من أفضل المزارع",
-        "تغليف صحي آمن ومحكم",
-      );
-    }
-  }
-
-  if (!storageInstructions) {
-    if (name.includes("لحم") || name.includes("دجاج") || name.includes("فراخ")) {
-      storageInstructions =
-        "يُحفظ مبرداً عند 0 إلى 2 مئوية للاستهلاك خلال يومين، أو يُجمد عند -18 مئوية.";
-    } else if (name.includes("جبن") || name.includes("حليب") || name.includes("لبن")) {
-      storageInstructions = "يُحفظ في الثلاجة في درجة حرارة 2 - 5 مئوية داخل عبوة محكمة الإغلاق.";
-    } else {
-      storageInstructions = "يُحفظ في مكان جاف وبارد أو في درج الثلاجة لضمان بقائه نضراً وطازجاً.";
-    }
-  }
-
-  if (!originSource) {
-    originSource = "مزارع ومصادر محلية مصرية معتمدة بأعلى معايير الجودة والرقابة الصحية";
   }
 
   return {

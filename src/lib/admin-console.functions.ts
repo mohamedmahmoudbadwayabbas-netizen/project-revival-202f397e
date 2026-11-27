@@ -171,7 +171,7 @@ export const createUserAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { email: string; password: string; fullName: string; role: Role }) => {
     if (!/^\S+@\S+\.\S+$/.test(d.email)) throw new Error("بريد غير صحيح");
-    if ((d.password ?? "").length < 8) throw new Error("كلمة المرور ٨ أحرف على الأقل");
+    if ((d.password ?? "").length < 8) throw new Error("كلمة المرور 8 أحرف على الأقل");
     if (!ROLES.includes(d.role)) throw new Error("رتبة غير صحيحة");
     return d;
   })

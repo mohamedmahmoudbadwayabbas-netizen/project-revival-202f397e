@@ -173,11 +173,11 @@ function ProductsPage({ onGenerateCookingTip }: ProductsPageProps = {}) {
   const [characteristicsText, setCharacteristicsText] = useState("");
   const [storageText, setStorageText] = useState("");
   const [originText, setOriginText] = useState("");
-  const [nutritionCalories, setNutritionCalories] = useState("55 kcal");
-  const [nutritionProtein, setNutritionProtein] = useState("1.5 جم");
-  const [nutritionCarbs, setNutritionCarbs] = useState("11 جم");
-  const [nutritionFiber, setNutritionFiber] = useState("2.2 جم");
-  const [nutritionFats, setNutritionFats] = useState("0.4 جم");
+  const [nutritionCalories, setNutritionCalories] = useState("");
+  const [nutritionProtein, setNutritionProtein] = useState("");
+  const [nutritionCarbs, setNutritionCarbs] = useState("");
+  const [nutritionFiber, setNutritionFiber] = useState("");
+  const [nutritionFats, setNutritionFats] = useState("");
 
   // جلب البيانات من Supabase
   const load = async () => {
@@ -256,11 +256,11 @@ function ProductsPage({ onGenerateCookingTip }: ProductsPageProps = {}) {
       setCharacteristicsText("");
       setStorageText("");
       setOriginText("");
-      setNutritionCalories("55 kcal");
-      setNutritionProtein("1.5 جم");
-      setNutritionCarbs("11 جم");
-      setNutritionFiber("2.2 جم");
-      setNutritionFats("0.4 جم");
+      setNutritionCalories("");
+      setNutritionProtein("");
+      setNutritionCarbs("");
+      setNutritionFiber("");
+      setNutritionFats("");
       setTagsList([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -397,7 +397,7 @@ function ProductsPage({ onGenerateCookingTip }: ProductsPageProps = {}) {
         setNutritionProtein(res.nutritionalInfo.protein);
         setNutritionCarbs(res.nutritionalInfo.carbs);
         setNutritionFiber(res.nutritionalInfo.fiber);
-        setNutritionFats(res.nutritionalInfo.fats || "0.4 جم");
+        setNutritionFats(res.nutritionalInfo.fats || "");
       }
       setTagsList(res.tags);
       toast.success(
@@ -1150,7 +1150,7 @@ function ProductsPage({ onGenerateCookingTip }: ProductsPageProps = {}) {
                     <Input
                       value={nutritionCalories}
                       onChange={(e) => setNutritionCalories(e.target.value)}
-                      placeholder="55 kcal"
+                      placeholder="مثال: 55 سعر حراري"
                       className="h-8 rounded-lg text-xs font-bold bg-background"
                     />
                   </div>
@@ -1528,11 +1528,11 @@ function ProductsPage({ onGenerateCookingTip }: ProductsPageProps = {}) {
               setOriginText(data.originSource);
             }
             if (data.nutritionalInfo) {
-              setNutritionCalories(data.nutritionalInfo.calories || "55 kcal");
-              setNutritionProtein(data.nutritionalInfo.protein || "1.5 جم");
-              setNutritionCarbs(data.nutritionalInfo.carbs || "11 جم");
-              setNutritionFiber(data.nutritionalInfo.fiber || "2.2 جم");
-              setNutritionFats(data.nutritionalInfo.fats || "0.4 جم");
+              setNutritionCalories(data.nutritionalInfo.calories || "");
+              setNutritionProtein(data.nutritionalInfo.protein || "");
+              setNutritionCarbs(data.nutritionalInfo.carbs || "");
+              setNutritionFiber(data.nutritionalInfo.fiber || "");
+              setNutritionFats(data.nutritionalInfo.fats || "");
             }
             if (data.tags && data.tags.length > 0) {
               setTagsList((prev) => Array.from(new Set([...prev, ...data.tags])));

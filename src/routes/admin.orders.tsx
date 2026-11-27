@@ -331,7 +331,7 @@ function OrdersPage() {
           <p style="text-align: center;">إيصال تجميع وتوصيل الطلب</p>
           <div class="line"></div>
           <p><b>رقم الطلب:</b> #${o.id.slice(0, 8)}</p>
-          <p><b>التاريخ:</b> ${new Date(o.created_at).toLocaleString("ar-EG")}</p>
+          <p><b>التاريخ:</b> ${new Date(o.created_at).toLocaleString("ar-EG-u-nu-latn")}</p>
           <p><b>العميل:</b> ${esc(o.customer_name)}</p>
           <p><b>الهاتف:</b> ${esc(o.phone)}</p>
           <p><b>العنوان:</b> ${esc(o.address)}</p>
@@ -370,7 +370,7 @@ function OrdersPage() {
   const exportXlsx = (rows: Order[]) => {
     const data = rows.map((o) => ({
       "رقم الطلب": o.id.slice(0, 8),
-      التاريخ: new Date(o.created_at).toLocaleString("ar-EG"),
+      التاريخ: new Date(o.created_at).toLocaleString("ar-EG-u-nu-latn"),
       "اسم العميل": o.customer_name,
       الهاتف: o.phone,
       العنوان: o.address,
@@ -581,7 +581,7 @@ function OrdersPage() {
               >
                 <option value="all">كل التواريخ</option>
                 <option value="today">اليوم</option>
-                <option value="7days">آخر ٧ أيام</option>
+                <option value="7days">آخر 7 أيام</option>
               </select>
               <div className="admin-orders__search">
                 <Search className="h-4 w-4" />
@@ -670,12 +670,12 @@ function OrdersPage() {
                                     {Number(order.total_amount || 0).toFixed(2)} ج.م
                                   </td>
                                   <td>
-                                    {new Date(order.created_at).toLocaleTimeString("ar-EG", {
+                                    {new Date(order.created_at).toLocaleTimeString("ar-EG-u-nu-latn", {
                                       hour: "2-digit",
                                       minute: "2-digit",
                                     })}
                                     <small>
-                                      {new Date(order.created_at).toLocaleDateString("ar-EG")}
+                                      {new Date(order.created_at).toLocaleDateString("ar-EG-u-nu-latn")}
                                     </small>
                                   </td>
                                   <td>
@@ -756,7 +756,7 @@ function OrdersPage() {
                                     {order.customer_name || "عميل"}
                                   </p>
                                   <p className="text-[13px] text-muted-foreground">
-                                    {new Date(order.created_at).toLocaleString("ar-EG")}
+                                    {new Date(order.created_at).toLocaleString("ar-EG-u-nu-latn")}
                                   </p>
                                 </div>
                                 <span
@@ -992,7 +992,7 @@ function OrderDetailsTab({
               <span>آخر طلب</span>
               <strong>
                 {customerSummary?.lastOrderAt
-                  ? new Date(customerSummary.lastOrderAt).toLocaleDateString("ar-EG")
+                  ? new Date(customerSummary.lastOrderAt).toLocaleDateString("ar-EG-u-nu-latn")
                   : "—"}
               </strong>
             </div>
@@ -1063,7 +1063,7 @@ function OrderDetailsTab({
               </span>
               <small>
                 وقت الإنشاء:{" "}
-                {order?.created_at ? new Date(order.created_at).toLocaleString("ar-EG") : "—"} ·
+                {order?.created_at ? new Date(order.created_at).toLocaleString("ar-EG-u-nu-latn") : "—"} ·
                 طريقة الدفع: {paymentLabel}
               </small>
             </div>
@@ -1100,7 +1100,7 @@ function OrderDetailsTab({
                     <span>{label}</span>
                     <small>
                       {index === 0 && order
-                        ? new Date(order.created_at).toLocaleTimeString("ar-EG", {
+                        ? new Date(order.created_at).toLocaleTimeString("ar-EG-u-nu-latn", {
                             hour: "2-digit",
                             minute: "2-digit",
                           })
@@ -1193,7 +1193,7 @@ function OrderDetailsTab({
                 <li>
                   <i />
                   <span>تم إنشاء الطلب</span>
-                  <small>{new Date(order.created_at).toLocaleString("ar-EG")}</small>
+                  <small>{new Date(order.created_at).toLocaleString("ar-EG-u-nu-latn")}</small>
                 </li>
               </ol>
             ) : (

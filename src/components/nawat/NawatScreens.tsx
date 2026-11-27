@@ -24,9 +24,9 @@ import {
 } from "./icons";
 import { StoreLogoCompact } from "./NawatTopBar";
 
-const formatNumber = (value: number) => value.toLocaleString("ar-EG");
+const formatNumber = (value: number) => value.toLocaleString("ar-EG-u-nu-latn");
 const formatMoney = (value: number) =>
-  `${value.toLocaleString("ar-EG", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ج.م`;
+  `${value.toLocaleString("ar-EG-u-nu-latn", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ج.م`;
 const productName = (product: Product) => product.name_ar || product.name;
 
 /* ───────────────────────── 1) البداية ───────────────────────── */

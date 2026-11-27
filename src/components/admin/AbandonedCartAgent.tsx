@@ -122,7 +122,7 @@ export function AbandonedCartAgent() {
               "صنف",
           ),
           totalPrice,
-          lastUpdated: new Date(lastActivity).toLocaleString("ar-EG", {
+          lastUpdated: new Date(lastActivity).toLocaleString("ar-EG-u-nu-latn", {
             dateStyle: "short",
             timeStyle: "short",
           }),

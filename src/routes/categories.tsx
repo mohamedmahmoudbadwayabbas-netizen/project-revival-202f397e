@@ -138,6 +138,12 @@ export function CategoriesPage() {
               <SkeletonBox key={i} className="h-64 rounded-3xl" />
             ))}
           </div>
+        ) : categories.length === 0 ? (
+          <EmptyState
+            icon={<LayoutGrid className="h-8 w-8 text-primary" />}
+            title="الأقسام في الطريق"
+            description="لسه بنجهّز أقسام المتجر. ارجع لنا قريباً."
+          />
         ) : filteredCategories.length === 0 ? (
           <EmptyState
             icon={<LayoutGrid className="h-8 w-8 text-primary" />}

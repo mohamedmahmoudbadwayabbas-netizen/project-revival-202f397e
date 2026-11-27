@@ -78,7 +78,7 @@ export interface DriverOrder {
 export const Route = createFileRoute("/driver")({
   head: () => ({
     meta: [
-      { title: "بوابة كابتن التوصيل الذكية — سمارت ستور" },
+      { title: "بوابة كابتن التوصيل — الوادي الأخضر" },
       {
         name: "viewport",
         content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
@@ -378,7 +378,7 @@ export function DriverPortalPage() {
         .from("orders")
         .update({
           status: "delivered",
-          notes: `[إثبات تسليم POD]: المستلم: ${podData.receiverName} | الوقت: ${new Date().toLocaleTimeString("ar-EG")} | كابتن: ${driverName}`,
+          notes: `[إثبات تسليم POD]: المستلم: ${podData.receiverName} | الوقت: ${new Date().toLocaleTimeString("ar-EG-u-nu-latn")} | كابتن: ${driverName}`,
         })
         .eq("id", orderId);
 
@@ -608,7 +608,7 @@ export function DriverPortalPage() {
                             #{o.id.slice(0, 8)}
                           </span>
                           <span className="text-[10px] text-muted-foreground font-semibold">
-                            {new Date(o.created_at).toLocaleTimeString("ar-EG", {
+                            {new Date(o.created_at).toLocaleTimeString("ar-EG-u-nu-latn", {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}

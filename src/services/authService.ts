@@ -83,7 +83,22 @@ export function getArabicAuthErrorMessage(error: unknown): string {
     return "يرجى إكمال التحقق الأمني لإتمام العملية.";
   }
 
-  return rawMessage || "حدث خطأ أثناء تنفيذ العملية، يرجى المحاولة لاحقاً.";
+  if (
+    lowerMsg.includes("auth session") ||
+    lowerMsg.includes("session missing") ||
+    lowerMsg.includes("session_not_found") ||
+    lowerMsg.includes("refresh token")
+  ) {
+    return "تعذر بدء جلسة الدخول. حدّث الصفحة ثم حاول مرة أخرى.";
+  }
+  if (lowerMsg.includes("signups not allowed") || lowerMsg.includes("signup is disabled")) {
+    return "إنشاء الحسابات الجديدة متوقف حالياً.";
+  }
+
+  // Never show a raw English provider message to the customer.
+  return /[a-z]/i.test(rawMessage) && !/[\u0600-\u06FF]/.test(rawMessage)
+    ? "حدث خطأ أثناء تنفيذ العملية، يرجى المحاولة لاحقاً."
+    : rawMessage || "حدث خطأ أثناء تنفيذ العملية، يرجى المحاولة لاحقاً.";
 }
 
 /**

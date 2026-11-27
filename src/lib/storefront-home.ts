@@ -44,7 +44,7 @@ export function resolveSafeImageUrl(
 }
 
 const PACK_REGEX_AR =
-  /([\d٠-٩]+(?:[.,٫][\d٠-٩]+)?)\s*(كجم|كيلو|جم|جرام|لتر|مل|قطع|قطعة|علبة|عبوة|باكت|أكياس|كيس)/i;
+  /([\d\u0660-\u0669]+(?:[.,\u066B][\d\u0660-\u0669]+)?)\s*(كجم|كيلو|جم|جرام|لتر|مل|قطع|قطعة|علبة|عبوة|باكت|أكياس|كيس)/i;
 const PACK_REGEX_EN = /(\d+(?:\.\d+)?)\s*(kg|g|l|ml|pcs?)\b/i;
 
 const EN_UNIT_MAP: Record<string, string> = {
@@ -98,10 +98,10 @@ export function inferUnitLabel(
       labelSource,
     )
   ) {
-    return toArabicDigits("١ كجم");
+    return "1 كجم";
   }
   if (/(?:^|\s)(?:ال)?(?:زيت|حليب|لبن|عصير)(?=\s|$)/i.test(labelSource)) {
-    return toArabicDigits("١ لتر");
+    return "1 لتر";
   }
   if (
     /(?:^|\s)(?:ال)?(?:بهار|بهارات|كمون|بن|قهوة|مكسرات|توابل|خلطة|منظف)(?=\s|$)/i.test(labelSource)
@@ -172,10 +172,11 @@ export function buildOffersSlides(params: {
     (best, product) => Math.max(best, getDiscountPercent(product)),
     0,
   );
+  // Only promise free delivery when the store actually configured a threshold.
   const shippingLimit =
     typeof freeShippingThreshold === "number" && freeShippingThreshold > 0
       ? freeShippingThreshold
-      : 300;
+      : null;
 
   const firstImage = resolveSafeImageUrl(heroImageUrl, "/images/hero/fresh-produce.jpg");
   const dealsImage = resolveSafeImageUrl(heroBgImage, "/images/hero/weekly-deals.jpg");
@@ -184,7 +185,7 @@ export function buildOffersSlides(params: {
   return [
     {
       id: "slide-fresh-delivery",
-      badge: "توصيل سريع خلال ٤٥ دقيقة",
+      badge: "توصيل لباب بيتك",
       title: heroTitle?.trim() || "طازج كل يوم.. لباب بيتك",
       subtitle:
         heroSubtitle?.trim() ||
@@ -196,7 +197,7 @@ export function buildOffersSlides(params: {
     },
     {
       id: "slide-weekly-deals",
-      badge: maxDiscount > 0 ? `خصومات حقيقية حتى ${formatNumberAr(maxDiscount)}٪` : "عروض الأسبوع",
+      badge: maxDiscount > 0 ? `خصومات حقيقية حتى ${formatNumberAr(maxDiscount)}%` : "عروض الأسبوع",
       title: "وفّر على سلتك مع عروض الأسبوع",
       subtitle: "تخفيضات مباشرة على الأرز، الزيوت، الألبان، والمكسرات طوال الأسبوع.",
       ctaText: "استعرض العروض",
@@ -206,9 +207,11 @@ export function buildOffersSlides(params: {
     },
     {
       id: "slide-free-shipping",
-      badge: `شحن مجاني فوق ${formatNumberAr(shippingLimit)} ج.م`,
+      badge: shippingLimit
+        ? `توصيل مجاني فوق ${formatNumberAr(shippingLimit)} ج.م`
+        : "الدفع عند الاستلام",
       title: "مقاضي الشهر كاملة في طلب واحد",
-      subtitle: "اطلب احتياجات العائلة بضغطة واحدة مع الدفع عند الاستلام أو أونلاين بسهولة.",
+      subtitle: "اطلب احتياجات العائلة بضغطة واحدة وادفع عند الاستلام أو بإنستاباي.",
       ctaText: "تصفّح التشكيلة",
       imageUrl: pantryImage,
       accentTone: "teal",

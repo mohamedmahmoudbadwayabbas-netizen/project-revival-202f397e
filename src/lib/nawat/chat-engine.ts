@@ -5,6 +5,9 @@ import { normalizeProduct } from "@/lib/store-data-hooks";
 import { supabase } from "@/integrations/supabase/client";
 import { toolSearchProducts } from "@/services/aiTools/coreCatalogTools";
 import { AI_TOOL_SUITE } from "@/services/aiTools/toolDefinitions";
+import { formatPrice } from "@/lib/format-ar";
+import { findUnverifiedPrices } from "./price-guard";
+import { composeNawatSystemPrompt, NAWAT_FALLBACK_SYSTEM } from "./system-prompt";
 import {
   extractProductPicks,
   recoverAnswerFromThinking,
@@ -37,17 +40,6 @@ export interface NawatMessage {
   createdAt: string;
 }
 
-const FALLBACK_SYSTEM = `أنت «نواة»، مساعد التسوق الذكي من سوبرماركت الوادي الأخضر.
-قواعد صارمة لا يجوز مخالفتها أبداً:
-1. اللغة: كل تفكيرك الداخلي وردك النهائي يجب أن يكون باللغة العربية (العامية المصرية الودودة) فقط. ممنوع تماماً كتابة أي كلمة إنجليزية أو ذكر أسماء الأدوات البرمجية للعميل.
-2. منع الهلوسة تماماً: ممنوع منعاً باتاً ذكر اسم أي منتج أو سعر أو كمية مخزون لم يرجع صراحة في نتيجة أداة البحث في هذه المحادثة. إذا لم تجد منتجاً في القاعدة، قل بصراحة إنه غير متوفر حالياً ولا تخترع بدائل وهمية.
-3. الأسئلة العامة (مثل: إيه للعشا؟ أو في إيه للغدا؟ أو عايز حاجة للدايت): استدعِ أداة البحث بكلمة فارغة "" أو "*" أولاً لتعرف كل المنتجات المتاحة في المتجر، ثم رشّح من الموجود فعلاً فقط.
-4. لو هتقترح منتجات متوفرة من نتائج البحث، اكتب ردك العادي، وفي الآخر ضيف كتلة واحدة بالشكل ده بالظبط:
-\`\`\`products
-[{"id":"<id من نتيجة البحث حرفيًا>","quantity":1,"reason":"سبب قصير"}]
-\`\`\`
-5. لا تُنهِ أي رد بدون رسالة نصية عربية واضحة ومفيدة للعميل.`;
-
 const BASE_SEARCH_DECL = AI_TOOL_SUITE.find((t) => t.name === "searchProducts")?.declaration;
 const MAX_STEPS = 5;
 
@@ -60,33 +52,17 @@ export function detectUserImplicitSignal(userText: string): "user_correction" | 
 
 /**
  * حارس منع الهلوسة الفوري (Real-Time Price & Fact Guardrail):
- * يتحقق أن كل سعر مذكور بجانب "جنيه" أو "ج.م" في الرد يطابق فعلاً أسعار المنتجات التي عادت من القاعدة.
+ * كل مبلغ مكتوب بجانب عملة في الرد يجب أن يكون مفسَّراً من بيانات حقيقية
+ * (سعر منتج × كمية منطقية، أو إجمالي المنتجات المقترحة، أو رقم كتبه العميل).
  */
 function enforceRealTimePriceGuardrail(
   replyText: string,
   catalog: Map<string, Product>,
+  picks: Array<{ id: string; quantity: number }>,
+  userText: string,
 ): { safeText: string; triggered: boolean } {
-  const validPrices = new Set<number>();
-  for (const p of catalog.values()) {
-    validPrices.add(Math.round(Number(p.price_per_unit)));
-    validPrices.add(Number(p.price_per_unit));
-  }
-
-  let triggered = false;
-  const priceMentionRegex = /(\d+(?:\.\d+)?)\s*(?:جنيه|جنية|ج\.م)/g;
-  const matches = [...replyText.matchAll(priceMentionRegex)];
-
-  for (const m of matches) {
-    const mentionedPrice = Number(m[1]);
-    if (!validPrices.has(mentionedPrice) && !validPrices.has(Math.round(mentionedPrice))) {
-      triggered = true;
-      break;
-    }
-  }
-
-  if (!triggered) {
-    return { safeText: replyText, triggered: false };
-  }
+  const unverified = findUnverifiedPrices(replyText, catalog.values(), picks, userText);
+  if (!unverified.length) return { safeText: replyText, triggered: false };
 
   const availableItems = [...catalog.values()].filter((p) => Number(p.stock_quantity) > 0);
   if (availableItems.length === 0) {
@@ -97,13 +73,18 @@ function enforceRealTimePriceGuardrail(
     };
   }
 
-  const verifiedList = availableItems
+  const pickedIds = new Set(picks.map((p) => p.id));
+  const ordered = [
+    ...availableItems.filter((p) => pickedIds.has(p.id)),
+    ...availableItems.filter((p) => !pickedIds.has(p.id)),
+  ];
+  const verifiedList = ordered
     .slice(0, 6)
-    .map((p) => `• **${p.name_ar || p.name}** — بسعر **${p.price_per_unit} ج.م**`)
+    .map((p) => `• **${p.name_ar || p.name}** — ${formatPrice(p.price_per_unit)}`)
     .join("\n");
 
   return {
-    safeText: `دي المنتجات المتوفرة حالياً في قاعدة بيانات المتجر بأسعارها الفعلية:\n\n${verifiedList}\n\nتقدر تضيف اللي يناسبك للسلة مباشرة من الكروت تحت.`,
+    safeText: `دي المنتجات المتوفرة حالياً بأسعارها الفعلية من المتجر:\n\n${verifiedList}\n\nتقدر تضيف اللي يناسبك للسلة من الكروت تحت، والإجمالي هيظهر في السلة.`,
     triggered: true,
   };
 }
@@ -130,14 +111,8 @@ async function loadDynamicNawatRuntime() {
       strict_price_guard?: boolean;
     } | null;
 
-    const basePrompt = cfg?.system_prompt_base?.trim() || FALLBACK_SYSTEM;
-    const rulesList = Array.isArray(cfg?.dynamic_rules) ? cfg!.dynamic_rules.filter(Boolean) : [];
-    const forbiddenList = Array.isArray(cfg?.forbidden_patterns)
-      ? cfg!.forbidden_patterns.filter(Boolean)
-      : [];
-
-    let fullPrompt = basePrompt;
     // تفضيلات العميل الفردية (لا تُعمَّم على باقي العملاء أبداً)
+    let preferences: unknown = null;
     try {
       const { data: auth } = await supabase.auth.getUser();
       if (auth?.user) {
@@ -146,24 +121,13 @@ async function loadDynamicNawatRuntime() {
           .select("ai_preferences")
           .eq("id", auth.user.id)
           .maybeSingle();
-        const prefs = prof?.ai_preferences;
-        if (prefs && typeof prefs === "object" && Object.keys(prefs).length) {
-          fullPrompt += `\n\n### تفضيلات هذا العميل فقط (خصّص ردك له ولا تعتبرها قاعدة عامة):\n${JSON.stringify(prefs)}`;
-        }
+        preferences = prof?.ai_preferences ?? null;
       }
     } catch {
       /* preferences are optional */
     }
-    if (rulesList.length > 0) {
-      fullPrompt += `\n\n### قواعد سلوكية إضافية معتمدة من إدارة المتجر (إلزامية التنفيذ):\n${rulesList
-        .map((r) => `- ${r}`)
-        .join("\n")}`;
-    }
-    if (forbiddenList.length > 0) {
-      fullPrompt += `\n\n### أخطاء سابقة ممنوع تكرارها نهائياً:\n${forbiddenList
-        .map((f) => `- ${f}`)
-        .join("\n")}`;
-    }
+    // The server rebuilds the same prompt for customers; this copy keeps admins' previews accurate.
+    const fullPrompt = composeNawatSystemPrompt(cfg, preferences);
 
     const searchToolMeta = ((tools as any[]) ?? []).find((t) => t.tool_name === "searchProducts");
     const dynamicSearchDecl = BASE_SEARCH_DECL
@@ -185,7 +149,7 @@ async function loadDynamicNawatRuntime() {
     };
   } catch {
     return {
-      systemInstruction: FALLBACK_SYSTEM,
+      systemInstruction: NAWAT_FALLBACK_SYSTEM,
       searchDeclaration: BASE_SEARCH_DECL,
       strictPriceGuard: true,
     };
@@ -319,7 +283,7 @@ export async function runNawatTurn(
   if (split.thinking) thoughts.push(split.thinking);
   let visible = split.text;
   if (!visible && thoughts.length) {
-    const rec = recoverAnswerFromThinking(thoughts.pop()!);
+    const rec = recoverAnswerFromThinking(thoughts.pop() ?? "");
     if (rec.thinking) thoughts.push(rec.thinking);
     visible = rec.text;
   }
@@ -334,7 +298,7 @@ export async function runNawatTurn(
   let safeReplyText = rawExtractedText;
   let guardrailTriggered = false;
   if (runtime.strictPriceGuard && safeReplyText) {
-    const guard = enforceRealTimePriceGuardrail(safeReplyText, catalog);
+    const guard = enforceRealTimePriceGuardrail(safeReplyText, catalog, picks, lastUserText);
     safeReplyText = guard.safeText;
     guardrailTriggered = guard.triggered;
   }
