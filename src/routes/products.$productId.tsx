@@ -279,6 +279,16 @@ function ReadyState({
     product.stock_quantity <= (product.low_stock_threshold ?? 5);
   const unit = unitText(product);
   const details = extractProductDetails(product);
+  // Show nutrition only for values the product really has, with "kcal" written in Arabic.
+  const nutritionRows = (
+    [
+      ["السعرات", details.nutritionalInfo.calories.replace(/\s*kcal\b/i, " سعر حراري")],
+      ["البروتين", details.nutritionalInfo.protein],
+      ["الكربوهيدرات", details.nutritionalInfo.carbs],
+      ["الألياف", details.nutritionalInfo.fiber],
+      ["الدهون", details.nutritionalInfo.fats],
+    ] as Array<[string, string]>
+  ).filter(([, value]) => Boolean(value && value.trim()));
   const setWeight = (weight: number, label: string) => {
     setQty(weight);
   };
@@ -494,18 +504,32 @@ function ReadyState({
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-          <h2 className="mb-3 text-lg font-black text-primary">خصائص المنتج</h2>
-          <ul className="space-y-2 text-sm leading-relaxed text-muted-foreground">
-            {details.characteristics.map((item) => (
-              <li key={item}>✓ {item}</li>
-            ))}
-          </ul>
-          <h3 className="mt-5 font-bold text-primary">طريقة الحفظ</h3>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            {details.storageInstructions}
-          </p>
-        </section>
+        {(details.characteristics.length > 0 || details.storageInstructions) && (
+          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            {details.characteristics.length > 0 && (
+              <>
+                <h2 className="mb-3 text-lg font-black text-primary">خصائص المنتج</h2>
+                <ul className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+                  {details.characteristics.map((item) => (
+                    <li key={item}>✓ {item}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {details.storageInstructions && (
+              <>
+                <h3
+                  className={`font-bold text-primary ${details.characteristics.length > 0 ? "mt-5" : ""}`}
+                >
+                  طريقة الحفظ
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {details.storageInstructions}
+                </p>
+              </>
+            )}
+          </section>
+        )}
         <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
           <h2 className="mb-3 text-lg font-black text-primary">تفاصيل البيع</h2>
           <dl className="space-y-3 text-sm">
@@ -523,34 +547,42 @@ function ReadyState({
                 {fmt(product.price_per_unit)} ج.م / {unit}
               </dd>
             </div>
-          </dl>
-        </section>
-        <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-          <h2 className="mb-3 text-lg font-black text-primary">المنشأ والقيمة الغذائية</h2>
-          <p className="mb-4 text-sm text-muted-foreground">{details.originSource}</p>
-          <p className="mb-2 text-xs font-bold text-primary">لكل 100 جم</p>
-          <dl className="grid grid-cols-2 gap-2 text-sm">
-            {[
-              ["السعرات", details.nutritionalInfo.calories],
-              ["البروتين", details.nutritionalInfo.protein],
-              ["الكربوهيدرات", details.nutritionalInfo.carbs],
-              ["الألياف", details.nutritionalInfo.fiber],
-              ["الدهون", details.nutritionalInfo.fats],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-lg bg-secondary/40 p-2">
-                <dt className="text-xs text-muted-foreground">{label}</dt>
-                <dd className="font-bold">{value}</dd>
+            {details.originSource && (
+              <div className="flex justify-between gap-3">
+                <dt className="font-bold">المنشأ</dt>
+                <dd className="text-muted-foreground">{details.originSource}</dd>
               </div>
-            ))}
+            )}
           </dl>
-          <p className="mt-4 rounded-xl bg-accent/10 p-3 text-sm leading-relaxed text-foreground">
-            {details.cookingTip}
-          </p>
         </section>
+        {nutritionRows.length > 0 && (
+          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="mb-3 text-lg font-black text-primary">القيمة الغذائية</h2>
+            <p className="mb-2 text-xs font-bold text-primary">لكل 100 جم</p>
+            <dl className="grid grid-cols-2 gap-2 text-sm">
+              {nutritionRows.map(([label, value]) => (
+                <div key={label} className="rounded-lg bg-secondary/40 p-2">
+                  <dt className="text-xs text-muted-foreground">{label}</dt>
+                  <dd className="font-bold">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
+        {details.cookingTip && (
+          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+            <h2 className="mb-3 text-lg font-black text-primary">نصيحة الشيف</h2>
+            <p className="text-sm leading-relaxed text-foreground">
+              {details.cookingTip.replace(/^نصيحة الشيف:\s*/, "")}
+            </p>
+          </section>
+        )}
         <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
           <h2 className="mb-3 text-lg font-black text-primary">الوصف</h2>
           <p className="leading-relaxed text-muted-foreground">
-            {product.description_ar || product.description || "لا يتوفر وصف لهذا المنتج حاليًا."}
+            {product.description_ar ||
+              (details.cleanDescription !== product.name ? details.cleanDescription : "") ||
+              "لا يتوفر وصف لهذا المنتج حاليًا."}
           </p>
         </section>
       </div>
@@ -558,7 +590,7 @@ function ReadyState({
       <section className="mt-4 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="mb-2 text-lg font-black text-primary">نصيحة من مساعد الوادي</h2>
+            <h2 className="mb-2 text-lg font-black text-primary">نصيحة من نواة</h2>
             {advice ? (
               <p className="leading-relaxed text-muted-foreground" aria-live="polite">
                 {advice}
@@ -566,7 +598,7 @@ function ReadyState({
             ) : (
               <>
                 <p className="text-sm leading-relaxed text-muted-foreground">
-                  يولّد Gemini نصيحة خاصة بهذا المنتج اعتمادًا على اسمه ووصفه المسجلين في المتجر.
+                  نواة تكتب لك نصيحة قصيرة عن هذا المنتج اعتماداً على بياناته المسجلة في المتجر.
                 </p>
                 {adviceError && (
                   <p role="alert" className="mt-3 text-sm text-destructive">

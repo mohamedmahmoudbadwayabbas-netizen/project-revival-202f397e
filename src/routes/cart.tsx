@@ -48,6 +48,7 @@ import { ItemSubstitutionSelector } from "@/components/storefront/ItemSubstituti
 import { StoreGoogleMapsWidget } from "@/components/storefront/StoreGoogleMapsWidget";
 import { useStoreProducts } from "@/lib/store-data-hooks";
 import { getBundleEligibility, type ActiveBundle } from "@/lib/bundle-pricing";
+import { formatPrice } from "@/lib/format-ar";
 
 export const Route = createFileRoute("/cart")({
   head: () => ({
@@ -107,21 +108,33 @@ const checkoutSchema = z.object({
   payment_reference: z.string().trim().max(120).optional(),
 });
 
-const ORDER_ERROR_MESSAGES: Record<string, string> = {
-  EMPTY_CART: "سلتك فارغة.",
-  CUSTOMER_DATA_REQUIRED: "يرجى إدخال الاسم ورقم الهاتف.",
-  INSUFFICIENT_STOCK: "عذراً، إحدى المنتجات في سلتك نفدت للتو. يرجى مراجعة السلة.",
-  INVALID_DELIVERY_ZONE: "منطقة التوصيل المختارة غير متاحة حالياً.",
-  MIN_DELIVERY_ORDER: "قيمة الطلب أقل من الحد الأدنى لهذه المنطقة.",
-  INVALID_CODE: "كود الخصم غير صحيح.",
-  EXPIRED: "انتهت صلاحية كود الخصم.",
-  EXHAUSTED: "تم استهلاك الحد الأقصى لاستخدام هذا الكود.",
-  MIN_ORDER: "قيمة الطلب أقل من الحد الأدنى لتطبيق كود الخصم.",
-};
+// Exact error codes raised by calculate_order_quote / create_order (most specific first).
+const ORDER_ERROR_MESSAGES: Array<[string, string]> = [
+  ["EMPTY_CART", "سلتك فارغة."],
+  ["INVALID_NAME", "اكتب الاسم بالكامل (حرفان على الأقل)."],
+  ["INVALID_PHONE", "رقم الهاتف غير صحيح."],
+  ["INVALID_ADDRESS", "اكتب عنوان التوصيل بالتفصيل."],
+  ["INVALID_PAYMENT", "طريقة الدفع غير متاحة."],
+  ["INVALID_DELIVERY_METHOD", "اختر التوصيل للمنزل أو الاستلام من الفرع."],
+  ["DELIVERY_ZONE_REQUIRED", "اختر منطقة التوصيل أولاً."],
+  ["INVALID_ZONE", "منطقة التوصيل المختارة غير متاحة حالياً."],
+  ["BELOW_MIN_ORDER", "قيمة الطلب أقل من الحد الأدنى للتوصيل لهذه المنطقة."],
+  ["INVALID_QUANTITY", "كمية أحد المنتجات غير صحيحة. راجع السلة."],
+  ["PRODUCT_NOT_FOUND", "أحد المنتجات لم يعد متاحاً. راجع السلة."],
+  ["INSUFFICIENT_STOCK", "أحد المنتجات في سلتك نفد للتو. راجع السلة."],
+  ["MIN_ORDER_NOT_MET", "قيمة الطلب أقل من الحد الأدنى لكود الخصم."],
+  ["EXPIRED_COUPON", "انتهت صلاحية كود الخصم."],
+  ["EXHAUSTED_COUPON", "تم استهلاك الحد الأقصى لاستخدام هذا الكود."],
+  ["INVALID_COUPON", "كود الخصم غير صحيح."],
+  ["QUOTE_MISMATCH_OR_EXPIRED", "تغيّرت السلة أو انتهت صلاحية السعر. حاول مرة أخرى."],
+  ["QUOTE_ITEMS_MISMATCH", "تغيّرت السلة أثناء الإرسال. حاول مرة أخرى."],
+  ["QUOTE_ALREADY_USED", "تم إرسال هذا الطلب بالفعل."],
+  ["INVALID_QUOTE_TOKEN", "انتهت صلاحية السعر. حاول مرة أخرى."],
+];
 
 function mapOrderErrorMessage(message?: string | null) {
   const raw = (message ?? "").trim();
-  for (const [code, text] of Object.entries(ORDER_ERROR_MESSAGES)) {
+  for (const [code, text] of ORDER_ERROR_MESSAGES) {
     if (raw === code || raw.includes(code)) return text;
   }
   return "حدث خطأ أثناء إتمام الطلب. يرجى المحاولة مرة أخرى.";
@@ -334,6 +347,14 @@ function CartPage() {
     if (!country && countries.length > 0) setCountry(countries[0]);
   }, [countries, country]);
 
+  // A level with a single choice is picked for the customer (e.g. أسوان ← أسوان).
+  useEffect(() => {
+    if (governorate && !city && cities.length === 1) setCity(cities[0]);
+  }, [governorate, city, cities]);
+  useEffect(() => {
+    if (city && !area && areas.length === 1) setArea(areas[0]);
+  }, [city, area, areas]);
+
   // Auto-resolve zoneId when all required cascading levels are chosen
   useEffect(() => {
     if (!country) {
@@ -496,7 +517,11 @@ function CartPage() {
         p_delivery_zone_id: baseArgs.p_delivery_zone_id,
       } as any);
       if (quoteError || !quoteData || typeof quoteData !== "object" || !("token" in quoteData)) {
-        throw new Error(quoteError?.message || "تعذر تأكيد السعر النهائي من الخادم.");
+        throw new Error(
+          quoteError?.message
+            ? mapOrderErrorMessage(quoteError.message)
+            : "تعذر تأكيد السعر النهائي من الخادم.",
+        );
       }
       const { data: rpcData, error: rpcError } = await supabase.rpc("create_order", {
         ...baseArgs,
@@ -616,17 +641,17 @@ function CartPage() {
               </div>
               <ol className="cart-checkout-steps">
                 <li className="is-complete">
-                  <span>١</span>
+                  <span>1</span>
                   <b>السلة</b>
                 </li>
                 <i aria-hidden="true" />
                 <li className={form.customer_name && form.phone ? "is-complete" : "is-current"}>
-                  <span>٢</span>
+                  <span>2</span>
                   <b>بيانات التوصيل</b>
                 </li>
                 <i aria-hidden="true" />
                 <li>
-                  <span>٣</span>
+                  <span>3</span>
                   <b>تأكيد الطلب</b>
                 </li>
               </ol>
@@ -651,7 +676,7 @@ function CartPage() {
                             <span>
                               أضف بـ{" "}
                               <strong className="text-amber-600 font-black">
-                                {(effectiveMin - totalPrice).toFixed(2)} ج.م
+                                {formatPrice(effectiveMin - totalPrice)}
                               </strong>{" "}
                               للوصول للحد الأدنى للطلب ({effectiveMin} ج.م)
                             </span>
@@ -659,7 +684,7 @@ function CartPage() {
                             <span>
                               باقي{" "}
                               <strong className="text-amber-600 font-black">
-                                {missingToFreeShip.toFixed(2)} ج.م
+                                {formatPrice(missingToFreeShip)}
                               </strong>{" "}
                               للحصول على شحن مجاني! 🚚
                             </span>
@@ -668,7 +693,7 @@ function CartPage() {
                           )}
                         </span>
                         <span className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400">
-                          {totalPrice.toFixed(2)} / {(freeShipAt || effectiveMin).toFixed(2)} ج.م
+                          {totalPrice.toFixed(2)} / {formatPrice(freeShipAt || effectiveMin)}
                         </span>
                       </div>
 
@@ -728,7 +753,7 @@ function CartPage() {
                             </button>
                           </div>
                           <div className="text-[11px] text-muted-foreground">
-                            {it.product.price_per_unit.toFixed(2)} ج.م{" "}
+                            {formatPrice(it.product.price_per_unit)}{" "}
                             {it.product.is_by_weight ? "/ كجم" : `/ ${it.product.unit_label}`}
                           </div>
                           {(it.product.stock_quantity ?? 0) <= 0 ? (
@@ -792,7 +817,7 @@ function CartPage() {
                               </button>
                             </div>
                             <div className="font-display text-sm font-black text-primary">
-                              {lineSubtotal(it.product, it.quantity).toFixed(2)} ج.م
+                              {formatPrice(lineSubtotal(it.product, it.quantity))}
                             </div>
                           </div>
                         </div>
@@ -853,7 +878,7 @@ function CartPage() {
                           label="المدينة"
                           value={city}
                           options={cities}
-                          placeholder={cities.length === 0 ? "لا يتطلب" : "اختر المدينة"}
+                          placeholder={governorate ? "اختر المدينة" : "اختر المحافظة أولاً"}
                           disabled={!governorate || cities.length === 0}
                           onChange={(v) => {
                             setCity(v);
@@ -864,7 +889,7 @@ function CartPage() {
                           label="المنطقة / الحي"
                           value={area}
                           options={areas}
-                          placeholder={areas.length === 0 ? "لا يتطلب" : "اختر المنطقة"}
+                          placeholder={city ? "اختر المنطقة" : "اختر المدينة أولاً"}
                           disabled={!city || areas.length === 0}
                           onChange={setArea}
                         />
@@ -887,7 +912,7 @@ function CartPage() {
                             </div>
                           </div>
                           <div className="shrink-0 font-display text-sm font-black text-primary">
-                            {Number(zone.fee).toFixed(2)} ج.م
+                            {formatPrice(Number(zone.fee))}
                           </div>
                         </div>
                       ) : (
@@ -1021,7 +1046,7 @@ function CartPage() {
 
                         {/* ويدجت خرائط Google الذكية للتوصيل */}
                         <StoreGoogleMapsWidget
-                          title="خريطة التوصيل المباشرة (Google Maps)"
+                          title="حدّد موقع التوصيل على الخريطة"
                           subtitle="تأكيد نطاق التغطية وتتبع المسار وموقع التسليم بدقة"
                           storeAddress={
                             form.address ||
@@ -1089,7 +1114,7 @@ function CartPage() {
                     <div className="mt-3 space-y-2 rounded-2xl border border-accent/30 bg-accent/5 p-3 text-xs">
                       <div className="font-bold">
                         حوّل المبلغ{" "}
-                        <span className="text-primary">{grandTotal.toFixed(2)} ج.م</span> على
+                        <span className="text-primary">{formatPrice(grandTotal)}</span> على
                         إنستاباي:
                       </div>
                       <button
@@ -1112,7 +1137,7 @@ function CartPage() {
                     <div className="mt-3 space-y-2 rounded-2xl border border-accent/30 bg-accent/5 p-3 text-xs">
                       <div className="font-bold">
                         حوّل المبلغ{" "}
-                        <span className="text-primary">{grandTotal.toFixed(2)} ج.م</span> إلى الحساب
+                        <span className="text-primary">{formatPrice(grandTotal)}</span> إلى الحساب
                         التالي:
                       </div>
                       <pre className="whitespace-pre-wrap rounded-xl bg-background p-3 font-sans leading-relaxed">
@@ -1154,7 +1179,7 @@ function CartPage() {
                       </p>
                       {bestBundle.estimatedSaving > 0 && (
                         <p className="mt-1 text-[11px] font-bold text-primary">
-                          التوفير التقديري: {bestBundle.estimatedSaving.toFixed(2)} ج.م — يُؤكد عند
+                          التوفير التقديري: {formatPrice(bestBundle.estimatedSaving)} — يُؤكد عند
                           إرسال الطلب
                         </p>
                       )}
@@ -1205,28 +1230,32 @@ function CartPage() {
                   </div>
 
                   <div className="space-y-2 text-sm">
-                    <Row label="الإجمالي الفرعي" value={`${totalPrice.toFixed(2)} ج.م`} />
+                    <Row label="الإجمالي الفرعي" value={`${formatPrice(totalPrice)}`} />
                     {discountAmount > 0 && (
                       <Row
                         label={`الخصم (${coupon?.code})`}
-                        value={`- ${discountAmount.toFixed(2)} ج.م`}
+                        value={`- ${formatPrice(discountAmount)}`}
                       />
                     )}
                     <Row
                       label={deliveryMethod === "pickup" ? "رسوم الاستلام" : "رسوم التوصيل"}
-                      value={`${Number(deliveryFee).toFixed(2)} ج.م`}
+                      value={
+                        deliveryMethod === "delivery" && !zone
+                          ? "تُحسب بعد اختيار المنطقة"
+                          : formatPrice(Number(deliveryFee))
+                      }
                     />
                     <div className="my-2 h-px bg-border" />
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-bold">المبلغ المستحق</span>
                       <span className="font-display text-2xl font-black text-primary">
-                        {grandTotal.toFixed(2)} ج.م
+                        {formatPrice(grandTotal)}
                       </span>
                     </div>
                     {belowMin && (
                       <p className="mt-2 rounded-xl bg-destructive/10 px-3 py-2 text-[11px] font-bold text-destructive">
                         ⚠️ الحد الأدنى للطلب هو {effectiveMin} ج.م — أضف بقيمة{" "}
-                        {(effectiveMin - totalPrice).toFixed(2)} ج.م على الأقل.
+                        {formatPrice(effectiveMin - totalPrice)} على الأقل.
                       </p>
                     )}
                   </div>
