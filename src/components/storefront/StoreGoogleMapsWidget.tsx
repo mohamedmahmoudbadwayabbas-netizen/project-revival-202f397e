@@ -46,7 +46,7 @@ export function StoreGoogleMapsWidget({
   isInteractivePicker = false,
   onLocationSelect,
   title = "موقع المتجر وخرائط Google الذكية",
-  subtitle = "استعراض الموقع المباشر ونطاق التغطية مع بيانات Google Maps الحية",
+  subtitle = "تأكد من موقع التسليم ونطاق التغطية",
   showAiGrounding = true,
   allowSaveAsDefault = false,
   customerFullName = "",
@@ -81,7 +81,7 @@ export function StoreGoogleMapsWidget({
 
       setGroundingAnswer(res.answer);
       setGroundingPlaces(res.places);
-      toast.success("تم جلب بيانات الخريطة الذكية عبر Google Maps Grounding 📍");
+      toast.success("تم تحديد المعالم القريبة من موقعك");
     } catch (e) {
       console.warn("Maps grounding query error:", e);
     } finally {
@@ -165,7 +165,7 @@ export function StoreGoogleMapsWidget({
               ) : (
                 <Sparkles className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
               )}
-              <span>Maps AI الذكي</span>
+              <span>معالم قريبة</span>
             </Button>
           )}
 
@@ -223,7 +223,7 @@ export function StoreGoogleMapsWidget({
 
         <span className="text-[10px] font-bold text-muted-foreground hidden sm:inline">
           {activeView === "map"
-            ? "تحديد مباشر عبر الأقمار الصناعية"
+            ? "حرّك الدبوس لمكان التسليم بالضبط"
             : "اختيار سريع للمناطق المصرية"}
         </span>
       </div>
@@ -275,8 +275,8 @@ export function StoreGoogleMapsWidget({
               <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
               <span>حفظ هذا الموقع كموقع افتراضي أساسي للطلبات القادمة</span>
             </div>
-            <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-              Default Address
+            <span className="text-xs font-bold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+              العنوان الأساسي
             </span>
           </div>
 
@@ -335,7 +335,7 @@ export function StoreGoogleMapsWidget({
         <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3.5 space-y-2">
           <div className="flex items-center gap-2 text-xs font-black text-emerald-800 dark:text-emerald-300">
             <Sparkles className="h-4 w-4" />
-            <span>بيانات ومعالم خرائط Google الذكية (Gemini Maps Grounding):</span>
+            <span>معالم قريبة من موقعك:</span>
           </div>
           <div className="text-xs font-medium text-foreground leading-relaxed whitespace-pre-line">
             {groundingAnswer}

@@ -201,7 +201,7 @@ function OverviewPage() {
   const greeting = getArabicTimeGreeting();
   const formattedToday = useMemo(
     () =>
-      new Intl.DateTimeFormat("ar-EG", {
+      new Intl.DateTimeFormat("ar-EG-u-nu-latn", {
         weekday: "long",
         day: "numeric",
         month: "long",

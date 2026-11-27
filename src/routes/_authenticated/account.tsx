@@ -52,6 +52,7 @@ import { formatWeightLabel } from "@/lib/cart-context";
 import { toast } from "sonner";
 import { StoreGoogleMapsWidget } from "@/components/storefront/StoreGoogleMapsWidget";
 import { EmptyState } from "@/components/storefront/EmptyState";
+import { formatPrice } from "@/lib/format-ar";
 
 export const Route = createFileRoute("/_authenticated/account")({
   ssr: false,
@@ -126,7 +127,7 @@ function AccountPage() {
                 <h3 className="font-black text-base text-amber-900 dark:text-amber-200 flex items-center gap-2">
                   <span>حساب مسؤول المتجر (الأدمن)</span>
                   <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">
-                    Admin Active
+                    مسؤول
                   </span>
                 </h3>
                 <p className="mt-0.5 text-xs text-amber-800/90 dark:text-amber-300/90 font-semibold leading-relaxed">
@@ -294,7 +295,7 @@ function LoyaltyTab({ userId }: { userId: string }) {
           </div>
           <div className="text-start sm:text-end">
             <p className="text-xs text-muted-foreground">إجمالي مشترياتك</p>
-            <p className="text-2xl font-black text-primary">{totalSpend.toFixed(2)} ج.م</p>
+            <p className="text-2xl font-black text-primary">{formatPrice(totalSpend)}</p>
           </div>
         </div>
         {nextTier && (
@@ -401,12 +402,19 @@ function OrdersTab({ userId }: { userId: string }) {
 
   const cancelOrder = async (id: string) => {
     if (!confirm("هل تريد بالتأكيد إلغاء هذا الطلب؟")) return;
-    const { error } = await supabase
-      .from("orders")
-      .update({ status: "cancelled" })
-      .eq("id", id)
-      .eq("user_id", userId);
-    if (error) return toast.error(error.message || "تعذّر إلغاء الطلب");
+    // The RPC checks ownership and status and puts the stock back in one transaction.
+    const { error } = await supabase.rpc("cancel_order_with_restock", {
+      p_order_id: id,
+      p_reason: "ألغاه العميل من صفحة حسابي",
+    });
+    if (error) {
+      const msg = String(error.message ?? "");
+      return toast.error(
+        msg.includes("ORDER_NOT_CANCELLABLE")
+          ? "لا يمكن إلغاء الطلب بعد بدء تجهيزه. تواصل معنا هاتفياً."
+          : "تعذّر إلغاء الطلب، حاول مرة أخرى.",
+      );
+    }
     toast.success("تم إلغاء الطلب");
     qc.invalidateQueries({ queryKey: ["my-orders", userId] });
   };
@@ -482,7 +490,7 @@ function OrdersTab({ userId }: { userId: string }) {
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5 text-emerald-600" />
-                  {new Date(o.created_at).toLocaleString("ar-EG", {
+                  {new Date(o.created_at).toLocaleString("ar-EG-u-nu-latn", {
                     dateStyle: "long",
                     timeStyle: "short",
                   })}
@@ -490,7 +498,7 @@ function OrdersTab({ userId }: { userId: string }) {
               </div>
               <div className="text-end">
                 <div className="font-display text-xl font-black text-emerald-700 dark:text-emerald-400">
-                  {Number(o.total_amount).toFixed(2)} ج.م
+                  {formatPrice(Number(o.total_amount))}
                 </div>
                 <div className="mt-0.5 text-[11px] font-semibold text-muted-foreground">
                   طريقة الدفع:{" "}
@@ -557,7 +565,7 @@ function OrdersTab({ userId }: { userId: string }) {
             {items.length > 0 && (
               <div className="mt-4 space-y-2 rounded-2xl bg-secondary/40 p-4">
                 <div className="mb-2 text-xs font-bold text-muted-foreground">
-                  المنتجات المطلوبين ({items.length})
+                  المنتجات المطلوبة ({items.length})
                 </div>
                 {items.map((i, idx) => (
                   <div
@@ -573,7 +581,7 @@ function OrdersTab({ userId }: { userId: string }) {
                     </div>
                     {i.price != null && (
                       <span className="font-bold text-primary">
-                        {Number(i.price * (i.quantity || 1)).toFixed(2)} ج.م
+                        {formatPrice(Number(i.price * (i.quantity || 1)))}
                       </span>
                     )}
                   </div>

@@ -42,7 +42,7 @@ export function GoogleMapsFallbackPicker({
     if (onLocationSelect) {
       onLocationSelect(preset.lat, preset.lng, fullAddr);
     }
-    toast.success(`تم اختيار منطقة: ${preset.district} (${preset.estimatedDeliveryTime})`);
+    toast.success(`تم اختيار منطقة: ${preset.district}`);
   };
 
   const handleUseMyLocation = () => {
@@ -164,12 +164,8 @@ export function GoogleMapsFallbackPicker({
                       <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     )}
                   </div>
-                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
-                    {preset.estimatedDeliveryTime}
-                  </span>
-                  <span className="text-[9px] text-muted-foreground truncate">
-                    توصيل {preset.deliveryFee} ج.م
-                  </span>
+                  {/* Delivery time and fee come from the selected delivery zone, not from this preset. */}
+                  <span className="mt-1 truncate text-xs text-muted-foreground">{preset.city}</span>
                 </button>
               );
             })}

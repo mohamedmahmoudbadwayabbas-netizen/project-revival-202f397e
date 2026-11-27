@@ -394,7 +394,7 @@ export function ProofOfDeliveryModal({
             </div>
             <div className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5 text-amber-500" />
-              <span>{new Date().toLocaleTimeString("ar-EG")}</span>
+              <span>{new Date().toLocaleTimeString("ar-EG-u-nu-latn")}</span>
             </div>
           </div>
         </div>

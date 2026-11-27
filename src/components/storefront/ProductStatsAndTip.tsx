@@ -53,7 +53,7 @@ export function ProductStatsAndTip({
             <div className="truncate text-xs font-black text-foreground">
               {safeViews > 0 ? (
                 <span>
-                  {safeViews.toLocaleString("ar-EG")}{" "}
+                  {safeViews.toLocaleString("ar-EG-u-nu-latn")}{" "}
                   <span className="text-[10px] font-normal text-muted-foreground">مشاهدة</span>
                 </span>
               ) : (
@@ -76,7 +76,7 @@ export function ProductStatsAndTip({
             <div className="truncate text-xs font-black text-foreground">
               {safePurchases > 0 ? (
                 <span>
-                  {safePurchases.toLocaleString("ar-EG")}{" "}
+                  {safePurchases.toLocaleString("ar-EG-u-nu-latn")}{" "}
                   <span className="text-[10px] font-normal text-muted-foreground">مشترٍ</span>
                 </span>
               ) : (

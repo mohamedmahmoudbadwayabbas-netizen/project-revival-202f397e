@@ -93,7 +93,7 @@ function AdminLogin() {
             <div className="flex items-center justify-center gap-1.5 pt-1">
               <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                 <Database className="h-3 w-3" />
-                سلسلة 3 فروع • Supabase Auth
+                دخول آمن لمسؤولي المتجر
               </span>
             </div>
             <h1 className="font-display text-2xl font-black text-foreground">{BRAND_NAME_AR}</h1>

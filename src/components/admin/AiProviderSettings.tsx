@@ -72,7 +72,7 @@ export function AiProviderSettings() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-1.5">
-            <span className="text-sm font-medium">١. الشركة المزودة</span>
+            <span className="text-sm font-medium">1. الشركة المزودة</span>
             <select
               className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               value={provider}
@@ -102,7 +102,7 @@ export function AiProviderSettings() {
           </label>
 
           <label className="space-y-1.5">
-            <span className="text-sm font-medium">٢. المفتاح</span>
+            <span className="text-sm font-medium">2. المفتاح</span>
             <div className="relative">
               <Input
                 type={showKey ? "text" : "password"}
@@ -130,7 +130,7 @@ export function AiProviderSettings() {
           </label>
 
           <label className="space-y-1.5">
-            <span className="text-sm font-medium">٣. اسم النموذج (اختياري)</span>
+            <span className="text-sm font-medium">3. اسم النموذج (اختياري)</span>
             <Input
               value={model === OPENROUTER_FREE_MODEL ? "" : model}
               onChange={(e) => setModel(e.target.value)}

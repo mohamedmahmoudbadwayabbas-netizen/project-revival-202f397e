@@ -203,11 +203,11 @@ function buildForecastRows(orders: OrderView[], stock: StockRow[]): ForecastRow[
 }
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 1 }).format(value);
+  return new Intl.NumberFormat("ar-EG-u-nu-latn", { maximumFractionDigits: 1 }).format(value);
 }
 
 function formatDays(value: number) {
-  return new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 1 }).format(value);
+  return new Intl.NumberFormat("ar-EG-u-nu-latn", { maximumFractionDigits: 1 }).format(value);
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -302,7 +302,7 @@ function AiInsights({ rows, disabled }: { rows: ForecastRow[]; disabled: boolean
           </h2>
           <p className="mt-1 text-xs text-slate-500">
             {savedAt
-              ? `آخر تحليل: ${new Date(savedAt).toLocaleString("ar-EG")} — يُحفظ 24 ساعة`
+              ? `آخر تحليل: ${new Date(savedAt).toLocaleString("ar-EG-u-nu-latn")} — يُحفظ 24 ساعة`
               : "يعمل فقط عند الضغط، على أكثر 7 أصناف معرضة للنقص."}
           </p>
         </div>

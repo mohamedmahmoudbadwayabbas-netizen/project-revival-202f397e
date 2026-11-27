@@ -4,6 +4,7 @@ import { Scale, Sparkles, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/cart-context";
 import { WEIGHT_OPTIONS, formatWeightLabel, calculateEstimatedPrice } from "@/lib/cart-context";
+import { formatPrice } from "@/lib/format-ar";
 
 interface WeightSelectorProps {
   product: Product;
@@ -46,7 +47,7 @@ export function WeightSelector({
           </span>
           {showEstimatedPrice && (
             <span dir="ltr" className="text-[11px] font-black text-primary tabular-nums">
-              ≈ {currentEstimatedPrice.toFixed(2)} ج.م
+              ≈ {formatPrice(currentEstimatedPrice)}
             </span>
           )}
         </div>

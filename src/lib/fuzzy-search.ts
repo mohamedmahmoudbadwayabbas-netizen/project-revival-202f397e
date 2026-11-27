@@ -24,13 +24,22 @@ export function normalizeArabic(text: string): string {
   );
 }
 
+// Keys and values are written in normalized form (see normalizeArabic).
 const SEARCH_SYNONYMS: Record<string, string[]> = {
-  لبن: ["حليب", "لبن"],
-  حليب: ["لبن", "حليب"],
-  جهينه: ["جهينة", "جيهنه"],
-  جيهنه: ["جهينة", "جيهنه"],
-  بطاطس: ["بطاطا", "بطاطس"],
-  طماطم: ["بندورة", "طماطم"],
+  لبن: ["حليب"],
+  حليب: ["لبن"],
+  جهينه: ["جهينه", "جيهنه"],
+  جيهنه: ["جهينه"],
+  بطاطا: ["بطاطس"],
+  بندوره: ["طماطم"],
+  رز: ["ارز"],
+  ارز: ["رز"],
+  عيش: ["خبز"],
+  خبز: ["عيش"],
+  فراخ: ["دجاج"],
+  دجاج: ["فراخ"],
+  لحمه: ["لحم"],
+  جبنه: ["جبن"],
 };
 
 /**
@@ -59,72 +68,97 @@ export function levenshteinDistance(a: string, b: string): number {
   return matrix[b.length][a.length];
 }
 
+/** Article/preposition prefixes stripped from target words ("بالحليب" → "حليب"). */
+const WORD_PREFIXES = ["وبال", "بال", "وال", "فال", "كال", "لل", "ال"];
+
+function stripPrefix(word: string): string {
+  for (const prefix of WORD_PREFIXES) {
+    if (word.startsWith(prefix) && word.length - prefix.length >= 2) return word.slice(prefix.length);
+  }
+  return word;
+}
+
+/** Edits allowed for a typo, by query word length: short words must match exactly. */
+function allowedTypos(length: number): number {
+  if (length <= 3) return 0;
+  if (length <= 5) return 1;
+  return 2;
+}
+
+function tokenize(text: string): string[] {
+  return normalizeArabic(text)
+    .split(/[\s\-_/،,.()]+/)
+    .filter(Boolean);
+}
+
+/** Best score of one query word against the target words (0 = no match). */
+function scoreWord(queryWord: string, targetWords: string[], allowTypos: boolean): number {
+  const synonyms = SEARCH_SYNONYMS[queryWord] ?? [];
+  let best = 0;
+  for (const raw of targetWords) {
+    for (const word of new Set([raw, stripPrefix(raw)])) {
+      if (word === queryWord) return 1;
+      if (word.startsWith(queryWord) && queryWord.length >= 2) best = Math.max(best, 0.9);
+      if (synonyms.some((syn) => word === syn || word.startsWith(syn))) best = Math.max(best, 0.88);
+      if (!allowTypos) continue;
+      const maxEdits = allowedTypos(queryWord.length);
+      if (maxEdits === 0) continue;
+      // Compare with the whole word and with its beginning (customer may still be typing).
+      const candidates = [word, word.slice(0, queryWord.length)];
+      for (const candidate of candidates) {
+        const dist = levenshteinDistance(queryWord, candidate);
+        if (dist <= maxEdits) best = Math.max(best, 0.75 - 0.1 * dist);
+      }
+    }
+  }
+  return best;
+}
+
 /**
  * Checks if a query fuzzy-matches a target text.
  * Returns a score between 0 (no match) and 1 (exact/perfect match).
  */
-export function getFuzzyMatchScore(query: string, targetText: string): number {
-  const normQuery = normalizeArabic(query);
-  const normTarget = normalizeArabic(targetText);
+export function getFuzzyMatchScore(
+  query: string,
+  targetText: string,
+  options: { allowTypos?: boolean } = {},
+): number {
+  const allowTypos = options.allowTypos ?? true;
+  const queryWords = tokenize(query).map(stripPrefix);
+  const targetWords = tokenize(targetText);
+  if (!queryWords.length || !targetWords.length) return 0;
 
-  if (!normQuery || !normTarget) return 0;
+  if (normalizeArabic(targetText) === normalizeArabic(query)) return 1;
 
-  // Exact or substring match gets highest score
-  if (normTarget === normQuery) return 1.0;
-  if (normTarget.includes(normQuery)) return 0.9;
-  if (normQuery.includes(normTarget)) return 0.85;
-  const synonymHit = (SEARCH_SYNONYMS[normQuery] ?? []).some((term) =>
-    normalizeArabic(targetText).includes(normalizeArabic(term)),
-  );
-  if (synonymHit) return 0.88;
-
-  // Split target words and check token-level match
-  const targetWords = normTarget.split(/\s+/);
-  const queryWords = normQuery.split(/\s+/);
-
-  let maxTokenScore = 0;
-
-  for (const qWord of queryWords) {
-    if (qWord.length < 2) continue;
-
-    for (const tWord of targetWords) {
-      if (tWord.includes(qWord)) {
-        maxTokenScore = Math.max(maxTokenScore, 0.8);
-        continue;
-      }
-
-      // Check distance for typo handling e.g. "طمطم" vs "طماطم"
-      const dist = levenshteinDistance(qWord, tWord);
-      const maxLen = Math.max(qWord.length, tWord.length);
-      const similarity = 1 - dist / maxLen;
-
-      if (dist <= 2 || similarity >= 0.6) {
-        maxTokenScore = Math.max(maxTokenScore, similarity);
-      }
-    }
+  // Every query word has to match something; the score is their average.
+  let total = 0;
+  for (const word of queryWords) {
+    const score = scoreWord(word, targetWords, allowTypos);
+    if (score === 0) return 0;
+    total += score;
   }
-
-  return maxTokenScore;
+  return total / queryWords.length;
 }
 
-export function searchProductsFuzzy<T extends { name: string; description?: string | null }>(
-  products: T[],
-  query: string,
-  minThreshold: number = 0.45,
-): T[] {
+export function searchProductsFuzzy<
+  T extends { name: string; name_ar?: string | null; description?: string | null },
+>(products: T[], query: string, minThreshold: number = 0.45): T[] {
   if (!query.trim()) return products;
 
-  const scored = products.map((product) => {
-    const nameScore = getFuzzyMatchScore(query, product.name);
+  const scored = products.map((product, index) => {
+    const nameScore = Math.max(
+      getFuzzyMatchScore(query, product.name),
+      product.name_ar ? getFuzzyMatchScore(query, product.name_ar) : 0,
+    );
+    // Descriptions only count for real words (no typo guessing), and weigh less than the name.
     const descScore = product.description
-      ? getFuzzyMatchScore(query, product.description) * 0.7
+      ? getFuzzyMatchScore(query, product.description, { allowTypos: false }) * 0.6
       : 0;
-    const finalScore = Math.max(nameScore, descScore);
-    return { product, score: finalScore };
+    return { product, index, score: Math.max(nameScore, descScore) };
   });
 
   return scored
     .filter((item) => item.score >= minThreshold)
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => b.score - a.score || a.index - b.index)
     .map((item) => item.product);
 }

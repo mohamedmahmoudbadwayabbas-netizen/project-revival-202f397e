@@ -371,7 +371,7 @@ function CouponsPage() {
                 <div>
                   الانتهاء:{" "}
                   <strong className="text-foreground">
-                    {c.expires_at ? new Date(c.expires_at).toLocaleDateString("ar-EG") : "غير محدد"}
+                    {c.expires_at ? new Date(c.expires_at).toLocaleDateString("ar-EG-u-nu-latn") : "غير محدد"}
                   </strong>
                 </div>
               </div>

@@ -32,13 +32,13 @@ describe("inferUnitLabel", () => {
       inferUnitLabel(
         makeProduct({ id: "1", name: "Egyptian Rice", name_ar: "أرز مصري عريض الحبة 5 كجم" }),
       ),
-    ).toBe("٥ كجم");
+    ).toBe("5 كجم");
 
     expect(
       inferUnitLabel(
         makeProduct({ id: "2", name: "Orange Juice 1L", name_ar: "عصير برتقال طبيعي 1 لتر" }),
       ),
-    ).toBe("١ لتر");
+    ).toBe("1 لتر");
 
     expect(
       inferUnitLabel(
@@ -48,19 +48,19 @@ describe("inferUnitLabel", () => {
           name_ar: "كرواسون طازج بالزبدة 4 قطع",
         }),
       ),
-    ).toBe("٤ قطع");
+    ).toBe("4 قطع");
 
     expect(
       inferUnitLabel(
         makeProduct({ id: "4", name: "Fresh Chicken 1.2kg", name_ar: "دجاج طازج منظف 1.2 كجم" }),
       ),
-    ).toBe("١٫٢ كجم");
+    ).toBe("1.2 كجم");
   });
 
   it("infers weight/container labels for unnumbered fresh produce, meat, and spice jars", () => {
     expect(
       inferUnitLabel(makeProduct({ id: "5", name: "Fresh Beef", name_ar: "لحم كندوز بلدي طازج" })),
-    ).toBe("١ كجم");
+    ).toBe("1 كجم");
     expect(
       inferUnitLabel(makeProduct({ id: "6", name: "Whole Cumin", name_ar: "كمون بلدي حصى فاخر" })),
     ).toBe("عبوة");
@@ -75,9 +75,9 @@ describe("inferUnitLabel", () => {
     ).toBe("قطعة");
   });
 
-  it("respects explicit non-generic unit_label and Arabic-Indic package numbers", () => {
+  it("respects explicit non-generic unit_label and normalizes Arabic-Indic package numbers to Latin", () => {
     expect(inferUnitLabel(makeProduct({ id: "7", name: "Milk", unit_label: "زجاجة 1 لتر" }))).toBe(
-      "زجاجة ١ لتر",
+      "زجاجة 1 لتر",
     );
     expect(
       inferUnitLabel(
@@ -98,7 +98,7 @@ describe("inferUnitLabel", () => {
           unit_label: "علبة ٣ كجم",
         }),
       ),
-    ).toBe("علبة ٣ كجم");
+    ).toBe("علبة 3 كجم");
     expect(
       inferUnitLabel(
         makeProduct({
@@ -107,10 +107,10 @@ describe("inferUnitLabel", () => {
           name_ar: "ميتكو لحمة مفرومة ٣٥٠ جم",
         }),
       ),
-    ).toBe("٣٥٠ جم");
+    ).toBe("350 جم");
     expect(
       inferUnitLabel(makeProduct({ id: "11", name: "Fresh Red Onions", name_ar: "بصل أحمر طازج" })),
-    ).toBe("١ كجم");
+    ).toBe("1 كجم");
   });
 });
 
@@ -176,8 +176,8 @@ describe("buildOffersSlides & resolveSafeImageUrl", () => {
     });
 
     expect(slides).toHaveLength(4);
-    expect(slides[1].badge).toContain("٢٥٪");
-    expect(slides[2].badge).toContain("٣٠٠");
+    expect(slides[1].badge).toContain("25%");
+    expect(slides[2].badge).toContain("300");
     expect(slides.every((s) => s.imageUrl.startsWith("/images/"))).toBe(true);
   });
 

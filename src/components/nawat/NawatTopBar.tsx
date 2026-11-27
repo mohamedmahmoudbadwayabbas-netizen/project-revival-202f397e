@@ -3,7 +3,7 @@ import { useCart } from "@/lib/cart-context";
 import { IconArrowBack, IconCart, IconLeaf, NawatMark } from "./icons";
 
 function toArabicDigits(value: number): string {
-  return value.toLocaleString("ar-EG");
+  return value.toLocaleString("ar-EG-u-nu-latn");
 }
 
 export function StoreLogoCompact() {

@@ -49,7 +49,7 @@ function statusName(status: string) {
 }
 
 function money(value: number) {
-  return `${new Intl.NumberFormat("ar-EG", { maximumFractionDigits: 2 }).format(value)} ج.م`;
+  return `${new Intl.NumberFormat("ar-EG-u-nu-latn", { maximumFractionDigits: 2 }).format(value)} ج.م`;
 }
 
 function CustomersPage() {
@@ -205,7 +205,7 @@ function CustomersPage() {
                       <td>{customer.phone || "غير مسجل"}</td>
                       <td>{customer.orders.length}</td>
                       <td className="admin-customers__amount">{money(customer.totalSpent)}</td>
-                      <td>{new Date(customer.latestOrderAt).toLocaleDateString("ar-EG")}</td>
+                      <td>{new Date(customer.latestOrderAt).toLocaleDateString("ar-EG-u-nu-latn")}</td>
                       <td className="admin-customers__address">{customer.address || "غير مسجل"}</td>
                       <td>
                         <Button
@@ -261,7 +261,7 @@ function CustomerDetails({ customer, onBack }: { customer: Customer; onBack: () 
         </article>
         <article>
           <span>آخر طلب</span>
-          <strong>{new Date(customer.latestOrderAt).toLocaleDateString("ar-EG")}</strong>
+          <strong>{new Date(customer.latestOrderAt).toLocaleDateString("ar-EG-u-nu-latn")}</strong>
         </article>
       </div>
 
@@ -293,7 +293,7 @@ function CustomerDetails({ customer, onBack }: { customer: Customer; onBack: () 
                   <td>
                     <bdi>#{order.id.slice(0, 8)}</bdi>
                   </td>
-                  <td>{new Date(order.created_at).toLocaleString("ar-EG")}</td>
+                  <td>{new Date(order.created_at).toLocaleString("ar-EG-u-nu-latn")}</td>
                   <td>
                     <span className={`admin-customers__status status-${order.status}`}>
                       {statusName(order.status)}

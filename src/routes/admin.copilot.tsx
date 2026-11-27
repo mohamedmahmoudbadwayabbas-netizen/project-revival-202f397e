@@ -439,7 +439,7 @@ function AdminCoPilotPage() {
       role: "user",
       content: prompt,
       attachedFile: file || undefined,
-      timestamp: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
+      timestamp: new Date().toLocaleTimeString("ar-EG-u-nu-latn", { hour: "2-digit", minute: "2-digit" }),
     };
 
     setChatHistory((prev) => [...prev, newMsg]);
@@ -467,7 +467,7 @@ function AdminCoPilotPage() {
         groundingSources: response.groundingSources,
         executedActions: response.executedActions,
         suggestedAction: response.action,
-        timestamp: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
+        timestamp: new Date().toLocaleTimeString("ar-EG-u-nu-latn", { hour: "2-digit", minute: "2-digit" }),
       };
 
       setChatHistory((prev) => [...prev, aiMsg]);
@@ -493,7 +493,7 @@ function AdminCoPilotPage() {
             title: AI_TOOL_SUITE.find((tool) => tool.name === result.tool)?.labelAr || result.tool,
             status: result.ok ? ("completed" as const) : ("failed" as const),
             message: result.messageAr,
-            createdAt: new Date().toLocaleTimeString("ar-EG", {
+            createdAt: new Date().toLocaleTimeString("ar-EG-u-nu-latn", {
               hour: "2-digit",
               minute: "2-digit",
             }),
@@ -508,7 +508,7 @@ function AdminCoPilotPage() {
           id: `err-${Date.now()}`,
           role: "assistant",
           content: "حدث خطأ أثناء معالجة الطلب. يرجى المحاولة مرة أخرى.",
-          timestamp: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
+          timestamp: new Date().toLocaleTimeString("ar-EG-u-nu-latn", { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
     } finally {
@@ -544,7 +544,7 @@ function AdminCoPilotPage() {
           proposal.toolName,
         status: result.ok ? "completed" : "failed",
         message: result.messageAr,
-        createdAt: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
+        createdAt: new Date().toLocaleTimeString("ar-EG-u-nu-latn", { hour: "2-digit", minute: "2-digit" }),
       },
       ...previous,
     ]);
@@ -561,7 +561,7 @@ function AdminCoPilotPage() {
         content: result.ok
           ? `✅ تم تنفيذ الإجراء والتحقق من نتيجته: ${result.messageAr}`
           : `⚠️ لم يكتمل الإجراء: ${result.messageAr}`,
-        timestamp: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
+        timestamp: new Date().toLocaleTimeString("ar-EG-u-nu-latn", { hour: "2-digit", minute: "2-digit" }),
       },
     ]);
   };
@@ -578,7 +578,7 @@ function AdminCoPilotPage() {
           rejected.toolName,
         status: "rejected",
         message: "رفض المسؤول المقترح؛ لم تُرسل أي كتابة إلى المتجر.",
-        createdAt: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
+        createdAt: new Date().toLocaleTimeString("ar-EG-u-nu-latn", { hour: "2-digit", minute: "2-digit" }),
       },
       ...previous,
     ]);
@@ -589,7 +589,7 @@ function AdminCoPilotPage() {
         id: `assistant-${Date.now()}`,
         role: "assistant",
         content: "تم رفض الإجراء. لم أغيّر أي بيانات في المتجر.",
-        timestamp: new Date().toLocaleTimeString("ar-EG", { hour: "2-digit", minute: "2-digit" }),
+        timestamp: new Date().toLocaleTimeString("ar-EG-u-nu-latn", { hour: "2-digit", minute: "2-digit" }),
       },
     ]);
   };
